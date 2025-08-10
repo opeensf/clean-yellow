@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createHashRouter } from 'react-router-dom';
 import App from '../App';
 import Home from '../pages/Home';
 import StockMarket from '../pages/StockMarket';
@@ -9,7 +9,7 @@ import StockProfitAnalysis from '../pages/StockProfitAnalysis';
 import ChanceFate from '../pages/ChanceFate';
 import Insurance from '../pages/Insurance';
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: '/',
     element: <App />,
