@@ -48,6 +48,4 @@ export const router = createHashRouter([
       }
     ]
   }
-], {
-  basename: '/clean-yellow'
-});
+]);
