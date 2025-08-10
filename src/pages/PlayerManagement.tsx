@@ -139,7 +139,8 @@ export default function PlayerManagement() {
         color: newPlayerColor,
         cash: 0,
         stocks: { property: 0, education: 0 },
-        insuranceFee: 1500
+        insuranceFee: 1500,
+        insuranceEnabled: false
       });
       toast.success('新玩家已添加');
       setNewPlayerName('');
