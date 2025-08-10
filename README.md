@@ -1,4 +1,4 @@
-# Clean Yellow - 大富翁风格游戏管理系统
+# Clean Yellow - 大富翁风格游戏管理系统 (1.1版本)
 
 一个基于 React + TypeScript + Vite 构建的现代化游戏管理系统，模拟大富翁游戏的各种功能模块。
 
