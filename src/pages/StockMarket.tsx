@@ -1,277 +1,266 @@
 import { useState } from 'react';
-import { ArrowLeft, TrendingUp, TrendingDown, Undo2 } from 'lucide-react';
+import {
+  Activity,
+  ArrowLeft,
+  Building2,
+  Clock3,
+  GraduationCap,
+  TrendingDown,
+  TrendingUp,
+  Undo2,
+} from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useNavigate } from 'react-router-dom';
-import { useGameStore } from '../store/gameStore';
+import { useGameStore, type StockType } from '../store/gameStore';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 
+const presetChanges = [3, 5, 10];
+
+const stockMeta: Record<StockType, { icon: typeof Building2; color: string; surface: string; line: string }> = {
+  property: { icon: Building2, color: 'text-blue-600', surface: 'bg-blue-50', line: '#3B82F6' },
+  education: { icon: GraduationCap, color: 'text-emerald-600', surface: 'bg-emerald-50', line: '#10B981' },
+};
+
 export default function StockMarket() {
   const navigate = useNavigate();
-  const { stocks, adjustStockPrice, updateStockPrice, undoLastOperation, history } = useGameStore();
-  const [customAmount, setCustomAmount] = useState<{ [key: string]: string }>({});
-  const [selectedStock, setSelectedStock] = useState<'property' | 'education'>('property');
+  const { stocks, adjustStockPrice, undoLastOperation, history } = useGameStore();
+  const [customAmount, setCustomAmount] = useState<Record<string, string>>({});
+  const [selectedStock, setSelectedStock] = useState<StockType>('property');
   const [isIncrease, setIsIncrease] = useState(true);
 
-  // 预设涨跌幅度
-  const presetChanges = [3, 5, 10];
+  const currentStock = stocks[selectedStock];
+  const meta = stockMeta[selectedStock];
 
-  // 处理预设涨跌
-  const handlePresetChange = (stockType: 'property' | 'education', percentage: number, isIncrease: boolean) => {
-    const finalPercentage = isIncrease ? percentage : -percentage;
-    adjustStockPrice(stockType, finalPercentage);
-    toast.success(`${stocks[stockType].name}${isIncrease ? '上涨' : '下跌'}${percentage}%`);
+  const handlePriceChange = (percentage: number) => {
+    adjustStockPrice(selectedStock, isIncrease ? percentage : -percentage);
+    toast.success(`${currentStock.name}${isIncrease ? '上涨' : '下跌'}${percentage}%`);
   };
 
-  // 处理自定义涨跌
-  const handleCustomChange = (stockType: 'property' | 'education') => {
-    const amount = parseFloat(customAmount[stockType] || '0');
-    if (isNaN(amount) || amount === 0) {
+  const handleCustomChange = () => {
+    const amount = Number(customAmount[selectedStock] || 0);
+    if (!Number.isFinite(amount) || amount <= 0) {
       toast.error('请输入有效的涨跌幅度');
       return;
     }
-    
-    const finalAmount = isIncrease ? amount : -amount;
-    adjustStockPrice(stockType, finalAmount);
-    toast.success(`${stocks[stockType].name}${isIncrease ? '上涨' : '下跌'}${amount}%`);
-    setCustomAmount({ ...customAmount, [stockType]: '' });
+
+    handlePriceChange(amount);
+    setCustomAmount((current) => ({ ...current, [selectedStock]: '' }));
   };
 
-  // 处理撤回操作
   const handleUndo = () => {
-    const success = undoLastOperation();
-    if (success) {
+    if (undoLastOperation()) {
       toast.success('已撤回上一次操作');
     } else {
       toast.error('没有可撤回的操作');
     }
   };
 
-  // 处理直接设置价格
-  const handleDirectPriceChange = (stockType: 'property' | 'education', newPrice: string) => {
-    const price = parseFloat(newPrice);
-    if (isNaN(price) || price <= 0) return;
-    
-    updateStockPrice(stockType, price);
-    toast.success(`${stocks[stockType].name}价格已设置为¥${price.toFixed(2)}`);
-  };
-
-  // 格式化图表数据
-  const getChartData = (stockType: 'property' | 'education') => {
-    const stock = stocks[stockType];
-    return stock.history.map((point, index) => ({
-      time: index + 1,
-      price: point.price,
-      timestamp: new Date(point.timestamp).toLocaleTimeString()
-    }));
-  };
+  const chartData = currentStock.history.map((point, index) => ({
+    time: index + 1,
+    price: point.price,
+    timestamp: new Date(point.timestamp).toLocaleTimeString(),
+  }));
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* 头部 */}
-      <div className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={() => navigate('/')}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/60">
+      <header className="sticky top-0 z-10 border-b border-white/80 bg-white/80 px-4 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              aria-label="返回首页"
+              className="rounded-xl p-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <div className="flex items-center gap-3">
+              <span className="rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 text-white shadow-lg shadow-blue-500/20">
+                <Activity size={21} />
+              </span>
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-slate-900">股票市场</h1>
+                <p className="text-xs text-slate-500">价格控制与走势</p>
+              </div>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleUndo}
+            disabled={history.length === 0}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <ArrowLeft size={20} />
+            <Undo2 size={16} />
+            <span className="hidden sm:inline">撤回</span>
           </button>
-          <h1 className="text-xl font-semibold">股票市场</h1>
         </div>
-      </div>
+      </header>
 
-      <div className="p-4 max-w-md mx-auto space-y-6">
-        {/* 股票选择 */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex gap-2 mb-4">
-            {Object.values(stocks).map((stock) => (
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Object.values(stocks).map((stock) => {
+            const stockStyle = stockMeta[stock.id];
+            const Icon = stockStyle.icon;
+            const isSelected = selectedStock === stock.id;
+            return (
               <button
                 key={stock.id}
+                type="button"
                 onClick={() => setSelectedStock(stock.id)}
                 className={cn(
-                  'flex-1 py-2 px-4 rounded-lg font-medium transition-colors',
-                  selectedStock === stock.id
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  'flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
+                  isSelected
+                    ? 'border-blue-200 bg-white shadow-md shadow-blue-100/60 ring-2 ring-blue-100'
+                    : 'border-white bg-white/70 shadow-sm hover:border-slate-200 hover:bg-white',
                 )}
               >
-                {stock.name}
+                <span className={cn('rounded-xl p-2.5', stockStyle.surface, stockStyle.color)}>
+                  <Icon size={20} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-medium text-slate-500">{stock.name}</span>
+                  <span className="mt-0.5 block text-2xl font-bold tracking-tight text-slate-900">¥{stock.price.toFixed(2)}</span>
+                </span>
+                {isSelected && <span className="h-2.5 w-2.5 rounded-full bg-blue-500 ring-4 ring-blue-100" />}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
-        {/* 当前股票信息 */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="text-center">
-            <h2 className="text-lg font-semibold mb-2">{stocks[selectedStock].name}</h2>
-            <div className="text-4xl font-bold text-blue-600 mb-2">
-              ¥{stocks[selectedStock].price.toFixed(2)}
-            </div>
-            <p className="text-gray-600">当前价格</p>
-          </div>
-        </div>
-
-        {/* 价格操作 */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="font-semibold mb-4">价格调整</h3>
-          
-          {/* 预设涨跌按钮 */}
-          <div className="space-y-3 mb-4">
-            <div>
-              <p className="text-sm text-gray-600 mb-2">上涨</p>
-              <div className="flex gap-2">
-                {presetChanges.map((percentage) => (
-                  <button
-                    key={`up-${percentage}`}
-                    onClick={() => handlePresetChange(selectedStock, percentage, true)}
-                    className="flex-1 flex items-center justify-center gap-1 py-2 px-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                  >
-                    <TrendingUp size={16} />
-                    +{percentage}%
-                  </button>
-                ))}
+        <div className="mt-5 grid items-start gap-5 lg:grid-cols-[1.35fr_0.65fr]">
+          <section className="rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-slate-500">{currentStock.name}</p>
+                <p className="mt-1 text-4xl font-bold tracking-tight text-slate-900">¥{currentStock.price.toFixed(2)}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-400">共 {currentStock.history.length} 个价格节点</p>
+                <p className={cn('mt-1 text-sm font-semibold', meta.color)}>实时走势</p>
               </div>
             </div>
-            
-            <div>
-              <p className="text-sm text-gray-600 mb-2">下跌</p>
-              <div className="flex gap-2">
-                {presetChanges.map((percentage) => (
-                  <button
-                    key={`down-${percentage}`}
-                    onClick={() => handlePresetChange(selectedStock, percentage, false)}
-                    className="flex-1 flex items-center justify-center gap-1 py-2 px-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    <TrendingDown size={16} />
-                    -{percentage}%
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
 
-          {/* 自定义涨跌 */}
-          <div className="border-t pt-4">
-            <p className="text-sm text-gray-600 mb-2">自定义涨跌幅度</p>
-            
-            {/* 涨跌方向选择 */}
-            <div className="flex gap-2 mb-3">
+            <div className="mt-6 h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                  <CartesianGrid vertical={false} stroke="#E2E8F0" strokeDasharray="4 4" />
+                  <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
+                  <Tooltip
+                    formatter={(value: number) => [`¥${value.toFixed(2)}`, '价格']}
+                    labelFormatter={(label) => `第 ${label} 次变动`}
+                    contentStyle={{ borderRadius: 12, borderColor: '#E2E8F0', boxShadow: '0 8px 24px rgba(15,23,42,0.08)' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="price"
+                    stroke={meta.line}
+                    strokeWidth={3}
+                    dot={{ fill: meta.line, strokeWidth: 3, stroke: '#fff', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
+            <h2 className="text-lg font-semibold text-slate-900">调整价格</h2>
+            <p className="mt-1 text-sm text-slate-500">选择方向和变动幅度</p>
+
+            <div className="mt-5 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
               <button
+                type="button"
                 onClick={() => setIsIncrease(true)}
                 className={cn(
-                  'flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg font-medium transition-colors',
-                  isIncrease
-                    ? 'bg-green-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  'flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold transition-all',
+                  isIncrease ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500',
                 )}
               >
-                <TrendingUp size={16} />
+                <TrendingUp size={17} />
                 上涨
               </button>
               <button
+                type="button"
                 onClick={() => setIsIncrease(false)}
                 className={cn(
-                  'flex-1 flex items-center justify-center gap-1 py-2 px-3 rounded-lg font-medium transition-colors',
-                  !isIncrease
-                    ? 'bg-red-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  'flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold transition-all',
+                  !isIncrease ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500',
                 )}
               >
-                <TrendingDown size={16} />
+                <TrendingDown size={17} />
                 下跌
               </button>
             </div>
-            
-            <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder="输入百分比"
-                min="0"
-                step="0.1"
-                value={customAmount[selectedStock] || ''}
-                onChange={(e) => setCustomAmount({ ...customAmount, [selectedStock]: e.target.value })}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={() => handleCustomChange(selectedStock)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                确认
-              </button>
+
+            <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-slate-400">快捷幅度</p>
+            <div className="grid grid-cols-3 gap-2">
+              {presetChanges.map((percentage) => (
+                <button
+                  key={percentage}
+                  type="button"
+                  onClick={() => handlePriceChange(percentage)}
+                  className={cn(
+                    'rounded-xl border py-3 text-sm font-bold transition-all',
+                    isIncrease
+                      ? 'border-emerald-100 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                      : 'border-red-100 bg-red-50 text-red-600 hover:bg-red-100',
+                  )}
+                >
+                  {isIncrease ? '+' : '-'}{percentage}%
+                </button>
+              ))}
             </div>
-          </div>
-          
-          {/* 撤回操作 */}
-          <div className="border-t pt-4">
-            <button
-              onClick={handleUndo}
-              disabled={history.length === 0}
-              className={cn(
-                'w-full flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-medium transition-colors',
-                history.length === 0
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-orange-500 text-white hover:bg-orange-600'
-              )}
-            >
-              <Undo2 size={16} />
-              撤回上一次操作
-            </button>
-            {history.length > 0 && (
-              <p className="text-xs text-gray-500 mt-1 text-center">
-                可撤回 {history.length} 次操作
-              </p>
-            )}
-          </div>
+
+            <div className="mt-5 border-t border-slate-100 pt-5">
+              <label htmlFor="custom-change" className="text-sm font-semibold text-slate-700">自定义幅度</label>
+              <div className="mt-2 flex gap-2">
+                <div className="relative min-w-0 flex-1">
+                  <input
+                    id="custom-change"
+                    type="number"
+                    value={customAmount[selectedStock] || ''}
+                    onChange={(event) => setCustomAmount((current) => ({ ...current, [selectedStock]: event.target.value }))}
+                    onKeyDown={(event) => event.key === 'Enter' && handleCustomChange()}
+                    min="0.1"
+                    step="0.1"
+                    placeholder="例如 2.5"
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 pr-8 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">%</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCustomChange}
+                  className="h-11 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition-colors hover:bg-blue-700"
+                >
+                  应用
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-xl bg-slate-50 p-3 text-center text-xs text-slate-500">
+              {history.length > 0 ? `当前可撤回 ${history.length} 次操作` : '暂无可撤回操作'}
+            </div>
+          </section>
         </div>
 
-        {/* 价格走势图 */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="font-semibold mb-4">价格走势</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={getChartData(selectedStock)}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="time" 
-                  tick={{ fontSize: 12 }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  domain={['dataMin - 5', 'dataMax + 5']}
-                />
-                <Tooltip 
-                  formatter={(value: number) => [`¥${value.toFixed(2)}`, '价格']}
-                  labelFormatter={(label) => `第${label}次变动`}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="price" 
-                  stroke={selectedStock === 'property' ? '#3B82F6' : '#10B981'}
-                  strokeWidth={2}
-                  dot={{ fill: selectedStock === 'property' ? '#3B82F6' : '#10B981', strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+        <section className="mt-5 rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
+          <div className="flex items-center gap-2">
+            <Clock3 size={18} className="text-slate-400" />
+            <h2 className="font-semibold text-slate-900">最近价格记录</h2>
           </div>
-        </div>
-
-        {/* 历史记录 */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h3 className="font-semibold mb-4">历史记录</h3>
-          <div className="space-y-2 max-h-40 overflow-y-auto">
-            {stocks[selectedStock].history.slice(-10).reverse().map((record, index) => (
-              <div key={record.timestamp} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0">
-                <span className="text-sm text-gray-600">
-                  {new Date(record.timestamp).toLocaleString()}
-                </span>
-                <span className="font-medium">¥{record.price.toFixed(2)}</span>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {currentStock.history.slice(-6).reverse().map((record, index) => (
+              <div key={`${record.timestamp}-${index}`} className="flex items-center justify-between rounded-xl bg-slate-50 px-3.5 py-3">
+                <span className="text-xs text-slate-500">{new Date(record.timestamp).toLocaleString()}</span>
+                <span className="font-semibold text-slate-800">¥{record.price.toFixed(2)}</span>
               </div>
             ))}
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

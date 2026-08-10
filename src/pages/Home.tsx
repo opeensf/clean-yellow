@@ -1,47 +1,51 @@
 import { useNavigate } from 'react-router-dom';
-import { ArrowUp, ArrowDown, BarChart3, RotateCcw, CreditCard } from 'lucide-react';
-import { useGameStore } from '../store/gameStore';
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  BarChart3,
+  Building2,
+  CreditCard,
+  GraduationCap,
+  RotateCcw,
+} from 'lucide-react';
+import { useGameStore, type StockType } from '../store/gameStore';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
+
+const stockMeta: Record<StockType, { icon: typeof Building2; color: string; surface: string }> = {
+  property: { icon: Building2, color: 'text-blue-600', surface: 'bg-blue-50' },
+  education: { icon: GraduationCap, color: 'text-emerald-600', surface: 'bg-emerald-50' },
+};
 
 export default function Home() {
   const navigate = useNavigate();
   const { stocks, players, getPlayerTotalValue, startNewGame } = useGameStore();
 
-  // 计算股票涨跌
-  const getStockChange = (stockType: 'property' | 'education') => {
+  const getStockChange = (stockType: StockType) => {
     const stock = stocks[stockType];
     if (stock.history.length < 2) return { change: 0, percentage: 0 };
-    
+
     const current = stock.price;
     const previous = stock.history[stock.history.length - 2].price;
-    const change = current - previous;
-    const percentage = (change / previous) * 100;
-    
-    return { change, percentage };
+    return {
+      change: current - previous,
+      percentage: previous === 0 ? 0 : ((current - previous) / previous) * 100,
+    };
   };
 
-  // 获取玩家排行
   const playersWithAssets = players
-    .map(player => ({
-      ...player,
-      totalValue: getPlayerTotalValue(player.id)
-    }))
-    .filter(player => player.totalValue > 0 || player.stocks.property > 0 || player.stocks.education > 0)
+    .map((player) => ({ ...player, totalValue: getPlayerTotalValue(player.id) }))
+    .filter((player) => player.totalValue > 0 || player.stocks.property > 0 || player.stocks.education > 0)
     .sort((a, b) => b.totalValue - a.totalValue);
-  
-  // 如果有超过3个玩家拥有股票，显示所有；否则显示前3名
-  const playerRanking = playersWithAssets.length > 3 
-    ? playersWithAssets 
+
+  const playerRanking = playersWithAssets.length > 3
+    ? playersWithAssets
     : players
-        .map(player => ({
-          ...player,
-          totalValue: getPlayerTotalValue(player.id)
-        }))
+        .map((player) => ({ ...player, totalValue: getPlayerTotalValue(player.id) }))
         .sort((a, b) => b.totalValue - a.totalValue)
         .slice(0, 3);
 
-  // 处理新一局游戏
   const handleNewGame = () => {
     if (window.confirm('确定要开始新一局游戏吗？这将重置所有数据但保留默认玩家。')) {
       startNewGame();
@@ -50,140 +54,156 @@ export default function Home() {
   };
 
   const quickActions = [
-    { 
+    {
       title: '欠债管理',
       description: '记录与管理玩家欠款',
       icon: CreditCard,
       path: '/debts',
-      color: 'bg-indigo-500'
+      color: 'text-indigo-600',
+      surface: 'bg-indigo-50',
     },
-    { 
-      title: '收益分析', 
-      description: '查看股票收益情况', 
-      icon: BarChart3, 
+    {
+      title: '收益分析',
+      description: '查看股票收益情况',
+      icon: BarChart3,
       path: '/profit-analysis',
-      color: 'bg-orange-500'
-    }
+      color: 'text-orange-600',
+      surface: 'bg-orange-50',
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-md mx-auto space-y-6">
-        {/* 标题 */}
-        <div className="text-center py-4">
-          <h1 className="text-2xl font-bold text-gray-900">扫黄之旅辅助工具</h1>
-          <p className="text-gray-600 mt-1">陵水县扫黄组制作出品</p>
-        </div>
-
-        {/* 股票概览 */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">股票概览</h2>
-          <div className="space-y-3">
-            {Object.values(stocks).map((stock) => {
-              const { change, percentage } = getStockChange(stock.id);
-              const isPositive = change >= 0;
-              
-              return (
-                <div key={stock.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <h3 className="font-medium">{stock.name}</h3>
-                    <p className="text-2xl font-bold">¥{stock.price.toFixed(2)}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className={cn(
-                      'flex items-center gap-1 text-sm font-medium',
-                      isPositive ? 'text-green-600' : 'text-red-600'
-                    )}>
-                      {isPositive ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
-                      {percentage.toFixed(2)}%
-                    </div>
-                    <p className={cn(
-                      'text-sm',
-                      isPositive ? 'text-green-600' : 'text-red-600'
-                    )}>
-                      {isPositive ? '+' : ''}¥{change.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/60">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+        <header className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-blue-600">游戏控制台</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">扫黄之旅辅助工具</h1>
+            <p className="mt-1 text-sm text-slate-500">陵水县扫黄组制作出品</p>
           </div>
+          <button
+            type="button"
+            onClick={handleNewGame}
+            className="flex shrink-0 items-center gap-2 rounded-xl border border-red-100 bg-white px-3 py-2.5 text-sm font-semibold text-red-600 shadow-sm transition-colors hover:bg-red-50"
+          >
+            <RotateCcw size={17} />
+            <span className="hidden sm:inline">新一局</span>
+          </button>
+        </header>
+
+        <div className="mt-7 grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
+          <section className="rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">股票概览</h2>
+                <p className="mt-1 text-sm text-slate-500">当前价格与最近一次变动</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/stocks')}
+                className="flex items-center gap-1 text-sm font-semibold text-blue-600 transition-colors hover:text-blue-700"
+              >
+                管理
+                <ArrowRight size={16} />
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {Object.values(stocks).map((stock) => {
+                const { change, percentage } = getStockChange(stock.id);
+                const isPositive = change >= 0;
+                const meta = stockMeta[stock.id];
+                const Icon = meta.icon;
+
+                return (
+                  <button
+                    key={stock.id}
+                    type="button"
+                    onClick={() => navigate('/stocks')}
+                    className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-blue-100 hover:bg-white hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={cn('rounded-xl p-2.5', meta.surface, meta.color)}>
+                        <Icon size={20} />
+                      </span>
+                      <span className={cn(
+                        'flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold',
+                        isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600',
+                      )}>
+                        {isPositive ? <ArrowUp size={13} /> : <ArrowDown size={13} />}
+                        {Math.abs(percentage).toFixed(2)}%
+                      </span>
+                    </div>
+                    <p className="mt-4 text-sm font-medium text-slate-500">{stock.name}</p>
+                    <p className="mt-1 text-3xl font-bold tracking-tight text-slate-900">¥{stock.price.toFixed(2)}</p>
+                    <p className={cn('mt-2 text-xs font-medium', isPositive ? 'text-emerald-600' : 'text-red-600')}>
+                      较上次 {isPositive ? '+' : '-'}¥{Math.abs(change).toFixed(2)}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
+            <h2 className="text-lg font-semibold text-slate-900">快速操作</h2>
+            <p className="mt-1 text-sm text-slate-500">常用的辅助功能</p>
+            <div className="mt-5 space-y-3">
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <button
+                    key={action.path}
+                    type="button"
+                    onClick={() => navigate(action.path)}
+                    className="group flex w-full items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-3.5 text-left transition-all hover:border-slate-200 hover:bg-white hover:shadow-sm"
+                  >
+                    <span className={cn('rounded-xl p-2.5', action.surface, action.color)}>
+                      <Icon size={19} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-semibold text-slate-800">{action.title}</span>
+                      <span className="block truncate text-xs text-slate-500">{action.description}</span>
+                    </span>
+                    <ArrowRight size={17} className="text-slate-300 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         </div>
 
-        {/* 股票资产概览 */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">股票资产概览</h2>
-          <div className="space-y-3">
-            {playerRanking.map((player) => (
-              <div key={player.id} className="bg-gray-50 rounded-lg p-3">
-                <div className="flex items-center gap-3 mb-2">
-                  <div 
-                    className="w-4 h-4 rounded-full" 
-                    style={{ backgroundColor: player.color }}
-                  />
-                  <span className="font-medium">{player.name}</span>
-                  <span className="ml-auto text-lg font-bold text-blue-600">
-                    ¥{player.totalValue.toFixed(2)}
-                  </span>
-                </div>
-                <div className="flex gap-4 text-sm">
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 h-6 bg-orange-500 text-white rounded flex items-center justify-center text-xs font-bold">
-                      房
-                    </span>
-                    <span className="text-gray-600">{player.stocks.property}股</span>
+        <section className="mt-5 rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">玩家股票资产</h2>
+              <p className="mt-1 text-sm text-slate-500">按当前股票价值排序</p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">{players.length} 名玩家</span>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {playerRanking.map((player, index) => (
+              <div key={player.id} className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/60 p-3.5">
+                <span
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl font-bold text-white shadow-sm"
+                  style={{ backgroundColor: player.color }}
+                >
+                  {Array.from(player.name)[0]}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate font-semibold text-slate-800">{player.name}</p>
+                    <span className="text-xs font-semibold text-slate-400">#{index + 1}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-6 h-6 bg-green-500 text-white rounded flex items-center justify-center text-xs font-bold">
-                      教
-                    </span>
-                    <span className="text-gray-600">{player.stocks.education}股</span>
-                  </div>
+                  <p className="mt-1 text-xs text-slate-500">房产 {player.stocks.property} 股 · 教育 {player.stocks.education} 股</p>
                 </div>
+                <p className="shrink-0 font-bold text-blue-600">¥{player.totalValue.toFixed(2)}</p>
               </div>
             ))}
           </div>
-        </div>
-
-        {/* 快速操作 */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <h2 className="text-lg font-semibold mb-4">快速操作</h2>
-          <div className="grid grid-cols-1 gap-3">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <button
-                  key={action.path}
-                  onClick={() => navigate(action.path)}
-                  className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                >
-                  <div className={cn('p-3 rounded-lg text-white', action.color)}>
-                    <Icon size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">{action.title}</h3>
-                    <p className="text-sm text-gray-600">{action.description}</p>
-                  </div>
-                </button>
-              );
-            })}
-            
-            {/* 新一局游戏按钮 */}
-            <button
-              onClick={handleNewGame}
-              className="flex items-center gap-4 p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors text-left border-2 border-red-200"
-            >
-              <div className="p-3 rounded-lg text-white bg-red-500">
-                <RotateCcw size={24} />
-              </div>
-              <div>
-                <h3 className="font-medium text-red-700">新一局游戏</h3>
-                <p className="text-sm text-red-600">重置所有数据，保留默认玩家</p>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }
