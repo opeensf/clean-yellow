@@ -345,9 +345,9 @@ export default function PlayerManagement() {
                     >{Array.from(player.name)[0]}</span>
                     <div className="min-w-0">
                       <h3 className="truncate font-semibold text-slate-900">{player.name}</h3>
-                      <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <span className="text-xs font-semibold text-slate-400">股值</span>
-                        <span className="text-2xl font-bold tracking-tight text-slate-900">¥{totalValue.toFixed(2)}</span>
+                      <div className="mt-1 flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
+                        <span className="text-xs font-medium text-slate-400">股值</span>
+                        <span className="text-lg font-semibold text-slate-800">¥{totalValue.toFixed(2)}</span>
                       </div>
                       <p className="mt-0.5 text-xs text-slate-500">房产 {player.stocks.property} 股 · 教育 {player.stocks.education} 股</p>
                     </div>
