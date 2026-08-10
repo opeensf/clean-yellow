@@ -1,5 +1,21 @@
 import { useState } from 'react';
-import { ArrowLeft, Plus, Minus, Edit2, Trash2, UserPlus, RotateCcw, DollarSign, Banknote, ChevronDown, ChevronUp, ShoppingCart, TrendingUp } from 'lucide-react';
+import {
+  ArrowLeft,
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  DollarSign,
+  Edit2,
+  GraduationCap,
+  Minus,
+  Plus,
+  RotateCcw,
+  ShoppingCart,
+  Trash2,
+  TrendingUp,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
 import { toast } from 'sonner';
@@ -12,7 +28,6 @@ export default function PlayerManagement() {
     stocks, 
     updatePlayer, 
     updatePlayerStocks, 
-    updatePlayerCash,
     sellStocks,
     cashOutStocks,
     removePlayer, 
@@ -158,11 +173,11 @@ export default function PlayerManagement() {
     }
   };
 
-  // 切换交易模式
-  const toggleTradeMode = (playerId: string) => {
+  // 设置交易模式
+  const setPlayerTradeMode = (playerId: string, mode: 'buy' | 'sell') => {
     setTradeMode(prev => ({
       ...prev,
-      [playerId]: prev[playerId] === 'buy' ? 'sell' : 'buy'
+      [playerId]: mode
     }));
   };
 
@@ -262,66 +277,91 @@ export default function PlayerManagement() {
     try {
       cashOutStocks(playerId, amount);
       toast.success(`${player?.name} 通过卖出股票获得现金 ¥${amount.toFixed(2)}`);
-    } catch (error) {
+    } catch {
       toast.error('操作失败，请检查股票余额');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/60">
       {/* 头部 */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 px-4 py-3 sticky top-0 z-10">
-        <div className="flex items-center justify-between">
+      <div className="sticky top-0 z-10 border-b border-white/80 bg-white/80 px-4 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <button 
+              type="button"
               onClick={() => navigate('/')}
-              className="p-2 hover:bg-gray-100/80 rounded-lg transition-colors"
+              aria-label="返回首页"
+              className="rounded-xl p-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               <ArrowLeft size={20} />
             </button>
-            <h1 className="text-xl font-semibold bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">玩家管理</h1>
+            <span className="rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 p-2.5 text-white shadow-lg shadow-blue-500/20"><Users size={21} /></span>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900">玩家管理</h1>
+              <p className="text-xs text-slate-500">玩家资料与资产配置</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <button
+              type="button"
               onClick={handleResetToDefault}
-              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all duration-200 shadow-sm"
+              aria-label="重置默认玩家"
+              className="flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-500 shadow-sm transition-colors hover:bg-slate-50 hover:text-slate-800"
             >
               <RotateCcw size={16} />
-              重置默认
+              <span className="hidden sm:inline">重置默认</span>
             </button>
             <button
+              type="button"
               onClick={() => setShowAddPlayer(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm"
+              className="flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-3.5 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition-colors hover:bg-blue-700"
             >
               <UserPlus size={16} />
-              添加玩家
+              <span className="hidden sm:inline">添加玩家</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div className="p-4 max-w-md mx-auto space-y-4">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+        <section className="mb-5 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-white bg-white/85 p-4 shadow-sm backdrop-blur">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-500"><Users size={17} className="text-blue-500" />玩家数量</div>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{players.length}<span className="ml-1 text-sm font-medium text-slate-400">名</span></p>
+          </div>
+          <div className="rounded-2xl border border-white bg-white/85 p-4 shadow-sm backdrop-blur">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-500"><DollarSign size={17} className="text-emerald-500" />股票总市值</div>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">¥{players.reduce((total, player) => total + getPlayerTotalValue(player.id), 0).toFixed(2)}</p>
+          </div>
+        </section>
+
+        <section className="space-y-4">
         {/* 玩家列表 */}
         {players.map((player) => {
           const totalValue = getPlayerTotalValue(player.id);
           const isExpanded = expandedCards[player.id];
           
           return (
-            <div key={player.id} className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 overflow-hidden transition-all duration-300 hover:shadow-xl">
+            <article key={player.id} className="overflow-hidden rounded-3xl border border-white bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur transition-all duration-300">
               {/* 玩家基本信息 - 可点击展开 */}
               <div 
-                className="p-4 cursor-pointer hover:bg-gray-50/50 transition-colors"
+                className="cursor-pointer p-5 transition-colors hover:bg-slate-50/50"
                 onClick={() => toggleCard(player.id)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="w-10 h-10 rounded-full ring-2 ring-white shadow-sm" 
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3.5">
+                    <span
+                      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl font-bold text-white shadow-sm ring-4 ring-white"
                       style={{ backgroundColor: player.color }}
-                    />
-                    <div>
-                      <h3 className="font-semibold text-gray-800">{player.name}</h3>
-                      <p className="text-sm text-gray-600">股票价值: ¥{totalValue.toFixed(2)}</p>
+                    >{Array.from(player.name)[0]}</span>
+                    <div className="min-w-0">
+                      <h3 className="truncate font-semibold text-slate-900">{player.name}</h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                        <span className="font-semibold text-blue-600">市值 ¥{totalValue.toFixed(2)}</span>
+                        <span>现金 ¥{player.cash.toFixed(2)}</span>
+                        <span>房产 {player.stocks.property} · 教育 {player.stocks.education}</span>
+                      </div>
                     </div>
                   </div>
                   
@@ -333,7 +373,8 @@ export default function PlayerManagement() {
                             e.stopPropagation();
                             startEditPlayer(player.id, player.name);
                           }}
-                          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                          aria-label={`编辑${player.name}`}
+                          className="rounded-xl p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
                         >
                           <Edit2 size={16} />
                         </button>
@@ -342,36 +383,39 @@ export default function PlayerManagement() {
                             e.stopPropagation();
                             handleRemovePlayer(player.id);
                           }}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          aria-label={`删除${player.name}`}
+                          className="rounded-xl p-2 text-slate-300 transition-colors hover:bg-red-50 hover:text-red-600"
                         >
                           <Trash2 size={16} />
                         </button>
                       </>
                     )}
-                    {isExpanded ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
+                    <span className={cn('rounded-xl bg-slate-100 p-2 text-slate-400 transition-colors', isExpanded && 'bg-blue-50 text-blue-600')}>
+                      {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                    </span>
                   </div>
                 </div>
                 
                 {/* 编辑名称 */}
                 {editingPlayer === player.id && (
-                  <div className="mt-3 flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row" onClick={(e) => e.stopPropagation()}>
                     <input
                       type="text"
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      onKeyPress={(e) => e.key === 'Enter' && savePlayerName(player.id)}
+                      className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                      onKeyDown={(e) => e.key === 'Enter' && savePlayerName(player.id)}
                       autoFocus
                     />
                     <button
                       onClick={() => savePlayerName(player.id)}
-                      className="px-3 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors"
+                      className="h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
                     >
                       保存
                     </button>
                     <button
                       onClick={cancelEdit}
-                      className="px-3 py-2 bg-gray-500 text-white rounded-lg text-sm hover:bg-gray-600 transition-colors"
+                      className="h-10 rounded-xl px-4 text-sm font-semibold text-slate-500 hover:bg-slate-100"
                     >
                       取消
                     </button>
@@ -381,30 +425,31 @@ export default function PlayerManagement() {
 
               {/* 展开的详细功能 */}
               {isExpanded && (
-                <div className="px-4 pb-4 space-y-4 border-t border-gray-100">
+                <div className="grid gap-4 border-t border-slate-100 p-4 sm:p-5 lg:grid-cols-2 lg:items-start">
                   {/* 按金额买卖 */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium flex items-center gap-2 text-gray-800">
+                  <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 sm:p-5">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h4 className="flex items-center gap-2 font-semibold text-slate-800">
                         {tradeMode[player.id] === 'buy' ? <ShoppingCart size={16} /> : <TrendingUp size={16} />}
                         按金额{tradeMode[player.id] === 'buy' ? '买入' : '卖出'}
                       </h4>
                       <button
-                        onClick={() => toggleTradeMode(player.id)}
+                        type="button"
+                        onClick={() => setPlayerTradeMode(player.id, tradeMode[player.id] === 'buy' ? 'sell' : 'buy')}
                         className={cn(
-                          'px-3 py-1 rounded-full text-sm font-medium transition-all duration-200',
+                          'rounded-full px-3 py-1.5 text-xs font-semibold transition-colors',
                           tradeMode[player.id] === 'buy'
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                            : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
                         )}
                       >
                         切换到{tradeMode[player.id] === 'buy' ? '卖出' : '买入'}
                       </button>
                     </div>
                     
-                    <div className="space-y-3">
+                    <div className="space-y-3.5">
                       {/* 股票种类选择 */}
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-2 rounded-xl bg-white/70 p-1">
                         {Object.entries(stocks).map(([stockType, stock]) => (
                           <button
                             key={stockType}
@@ -413,10 +458,10 @@ export default function PlayerManagement() {
                               [player.id]: stockType as 'property' | 'education'
                             })}
                             className={cn(
-                              'flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                              'rounded-lg px-3 py-2.5 text-sm font-semibold transition-all',
                               selectedStockType[player.id] === stockType || (!selectedStockType[player.id] && stockType === 'property')
-                                ? 'bg-blue-500 text-white shadow-sm'
-                                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-800'
                             )}
                           >
                             {stock.name}
@@ -426,25 +471,29 @@ export default function PlayerManagement() {
                       
                       {/* 金额输入和交易按钮 */}
                       <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          placeholder={`输入${tradeMode[player.id] === 'buy' ? '买入' : '卖出'}金额`}
-                          min="0.01"
-                          step="0.01"
-                          value={tradeInputs[`trade-${player.id}`] || ''}
-                          onChange={(e) => setTradeInputs({ 
-                            ...tradeInputs, 
-                            [`trade-${player.id}`]: e.target.value 
-                          })}
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                        <div className="relative min-w-0 flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">¥</span>
+                          <input
+                            type="number"
+                            placeholder={`输入${tradeMode[player.id] === 'buy' ? '买入' : '卖出'}金额`}
+                            min="0.01"
+                            step="0.01"
+                            value={tradeInputs[`trade-${player.id}`] || ''}
+                            onChange={(e) => setTradeInputs({
+                              ...tradeInputs,
+                              [`trade-${player.id}`]: e.target.value
+                            })}
+                            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-7 pr-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                          />
+                        </div>
                         <button
+                          type="button"
                           onClick={() => handleAmountTrade(player.id)}
                           className={cn(
-                            'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2',
+                            'flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition-colors',
                             tradeMode[player.id] === 'buy'
-                              ? 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 shadow-sm'
-                              : 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 shadow-sm'
+                              ? 'bg-emerald-500 hover:bg-emerald-600'
+                              : 'bg-rose-500 hover:bg-rose-600'
                           )}
                         >
                           {tradeMode[player.id] === 'buy' ? <ShoppingCart size={14} /> : <TrendingUp size={14} />}
@@ -452,7 +501,7 @@ export default function PlayerManagement() {
                         </button>
                       </div>
                       
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-slate-500">
                         {tradeMode[player.id] === 'sell' 
                           ? `${stocks[selectedStockType[player.id] || 'property'].name} 持有: ${player.stocks[selectedStockType[player.id] || 'property']} 股`
                           : `${stocks[selectedStockType[player.id] || 'property'].name} 当前价格: ¥${stocks[selectedStockType[player.id] || 'property'].price.toFixed(2)}/股`
@@ -461,7 +510,7 @@ export default function PlayerManagement() {
                     </div>
                     
                     {/* 快捷金额按钮 */}
-                    <div className="flex gap-2 mt-3">
+                    <div className="mt-4 grid grid-cols-4 gap-2">
                       {[1000, 2000, 3000, 5000].map(amount => (
                         <button
                           key={amount}
@@ -475,7 +524,7 @@ export default function PlayerManagement() {
                               });
                             }
                           }}
-                          className="px-2 py-1 bg-white/80 text-gray-700 rounded text-xs hover:bg-white transition-colors border border-gray-200"
+                          className="rounded-lg border border-blue-100 bg-white py-2 text-xs font-semibold text-slate-600 transition-colors hover:border-blue-200 hover:text-blue-600"
                         >
                           {tradeMode[player.id] === 'sell' ? '卖出' : ''}¥{amount}
                         </button>
@@ -485,7 +534,10 @@ export default function PlayerManagement() {
 
                   {/* 股票持有情况 */}
                   <div className="space-y-3">
-                    <h4 className="font-medium text-gray-800">股票操作</h4>
+                    <div>
+                      <h4 className="font-semibold text-slate-800">股票操作</h4>
+                      <p className="mt-1 text-xs text-slate-500">按股数直接调整玩家持仓</p>
+                    </div>
                     {Object.entries(stocks).map(([stockType, stock]) => {
                       const holdingCount = player.stocks[stockType as 'property' | 'education'];
                       const holdingValue = holdingCount * stock.price;
@@ -493,26 +545,26 @@ export default function PlayerManagement() {
                       const earnings = lastSellEarnings[earningsKey];
                       
                       return (
-                        <div key={stockType} className="bg-gray-50/80 rounded-lg p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <h5 className="font-medium text-gray-800">{stock.name}</h5>
-                              <p className="text-sm text-gray-600">
-                                持有: {holdingCount} 股 | 价值: ¥{holdingValue.toFixed(2)}
+                        <div key={stockType} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                          <div className="mb-3 flex items-center gap-3">
+                            <span className={cn('rounded-xl p-2.5', stockType === 'property' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600')}>
+                              {stockType === 'property' ? <Building2 size={18} /> : <GraduationCap size={18} />}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <h5 className="font-semibold text-slate-800">{stock.name}</h5>
+                              <p className="text-xs text-slate-500">
+                                {holdingCount} 股 · 市值 ¥{holdingValue.toFixed(2)}
                               </p>
                               {earnings && (
-                                <p className="text-sm text-green-600 font-medium">
+                                <p className="text-xs font-semibold text-emerald-600">
                                   卖出收益: +¥{earnings.toFixed(2)}
                                 </p>
                               )}
                             </div>
+                            <span className="text-xl font-bold text-slate-800">{holdingCount}</span>
                           </div>
                           
                           <div className="space-y-2">
-                            <div className="text-center font-medium text-gray-700">
-                              {holdingCount} 股
-                            </div>
-                            
                             <div className="flex items-center gap-2">
                               <input
                                 type="number"
@@ -523,25 +575,25 @@ export default function PlayerManagement() {
                                   ...stockInputs, 
                                   [`${player.id}-${stockType}`]: e.target.value 
                                 })}
-                                className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="h-10 min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                               />
                               <button
                                 onClick={() => handleStockInputChange(player.id, stockType as 'property' | 'education', false)}
                                 disabled={holdingCount <= 0}
                                 className={cn(
-                                  'px-3 py-1 rounded text-sm transition-colors',
+                                  'flex h-10 items-center gap-1 rounded-xl px-3 text-sm font-semibold transition-colors',
                                   holdingCount <= 0
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    : 'bg-red-500 text-white hover:bg-red-600'
+                                    ? 'cursor-not-allowed bg-slate-100 text-slate-300'
+                                    : 'border border-rose-100 bg-rose-50 text-rose-600 hover:bg-rose-100'
                                 )}
                               >
-                                减少
+                                <Minus size={14} /><span className="hidden sm:inline">减少</span>
                               </button>
                               <button
                                 onClick={() => handleStockInputChange(player.id, stockType as 'property' | 'education', true)}
-                                className="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
+                                className="flex h-10 items-center gap-1 rounded-xl border border-emerald-100 bg-emerald-50 px-3 text-sm font-semibold text-emerald-600 transition-colors hover:bg-emerald-100"
                               >
-                                增加
+                                <Plus size={14} /><span className="hidden sm:inline">增加</span>
                               </button>
                             </div>
                           </div>
@@ -551,44 +603,54 @@ export default function PlayerManagement() {
                   </div>
                 </div>
               )}
-            </div>
+            </article>
           );
         })}
 
+        </section>
+
         {/* 添加玩家弹窗 */}
         {showAddPlayer && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 w-full max-w-sm shadow-2xl border border-white/20">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">添加新玩家</h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-sm rounded-3xl border border-white bg-white/95 p-6 shadow-2xl shadow-slate-900/15 backdrop-blur">
+              <div>
+                <span className="inline-flex rounded-xl bg-blue-50 p-2.5 text-blue-600"><UserPlus size={20} /></span>
+                <h3 className="mt-4 text-xl font-bold tracking-tight text-slate-900">添加新玩家</h3>
+                <p className="mt-1 text-sm text-slate-500">设置玩家名称与专属识别色</p>
+              </div>
               
-              <div className="space-y-4">
+              <div className="mt-6 space-y-5">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">
                     玩家名称
                   </label>
                   <input
                     type="text"
                     value={newPlayerName}
                     onChange={(e) => setNewPlayerName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddPlayer()}
                     placeholder="输入玩家名称"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="mb-3 block text-sm font-semibold text-slate-700">
                     选择颜色
                   </label>
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid grid-cols-5 gap-3">
                     {availableColors.map((color) => (
                       <button
+                        type="button"
                         key={color}
                         onClick={() => setNewPlayerColor(color)}
+                        aria-label={`选择颜色 ${color}`}
                         className={cn(
-                          'w-8 h-8 rounded-full border-2 transition-all',
+                          'mx-auto h-9 w-9 rounded-xl border-2 transition-all',
                           newPlayerColor === color
-                            ? 'border-gray-800 scale-110 ring-2 ring-gray-300'
-                            : 'border-gray-300 hover:scale-105'
+                            ? 'scale-110 border-white ring-2 ring-slate-700 ring-offset-2'
+                            : 'border-white hover:scale-105'
                         )}
                         style={{ backgroundColor: color }}
                       />
@@ -597,16 +659,18 @@ export default function PlayerManagement() {
                 </div>
               </div>
               
-              <div className="flex gap-3 mt-6">
+              <div className="mt-7 flex gap-3">
                 <button
+                  type="button"
                   onClick={() => setShowAddPlayer(false)}
-                  className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="h-11 flex-1 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"
                 >
                   取消
                 </button>
                 <button
+                  type="button"
                   onClick={handleAddPlayer}
-                  className="flex-1 py-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-sm"
+                  className="h-11 flex-1 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition-colors hover:bg-blue-700"
                 >
                   添加
                 </button>
@@ -614,7 +678,7 @@ export default function PlayerManagement() {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
