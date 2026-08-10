@@ -564,7 +564,11 @@ export const useGameStore = create<GameState>()(persist(
       set((state) => ({
         players: state.players.map(player => 
           player.id === playerId 
-            ? { ...player, insuranceFee: Math.max(0, player.insuranceFee + amount) }
+            ? {
+                ...player,
+                insuranceFee: Math.max(0, player.insuranceFee + amount),
+                insuranceEnabled: amount > 0 ? false : player.insuranceEnabled
+              }
             : player
         )
       }));
@@ -574,7 +578,8 @@ export const useGameStore = create<GameState>()(persist(
       set((state) => ({
         players: state.players.map(player => ({
           ...player,
-          insuranceFee: player.insuranceFee + 1500
+          insuranceFee: player.insuranceFee + 1500,
+          insuranceEnabled: false
         }))
       }));
     },
