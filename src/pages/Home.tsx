@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Users, Dice6, ArrowUp, ArrowDown, BarChart3, RotateCcw, Sparkles, CreditCard } from 'lucide-react';
+import { ArrowUp, ArrowDown, BarChart3, RotateCcw, CreditCard } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -51,20 +51,6 @@ export default function Home() {
 
   const quickActions = [
     { 
-      title: '股票市场', 
-      description: '管理股票价格', 
-      icon: TrendingUp, 
-      path: '/stocks',
-      color: 'bg-blue-500'
-    },
-    { 
-      title: '玩家管理', 
-      description: '管理玩家股票', 
-      icon: Users, 
-      path: '/players',
-      color: 'bg-green-500'
-    },
-    { 
       title: '欠债管理',
       description: '记录与管理玩家欠款',
       icon: CreditCard,
@@ -72,25 +58,11 @@ export default function Home() {
       color: 'bg-indigo-500'
     },
     { 
-      title: '机会命运', 
-      description: '随机影响股票价格', 
-      icon: Sparkles, 
-      path: '/chance-fate',
-      color: 'bg-pink-500'
-    },
-    { 
       title: '收益分析', 
       description: '查看股票收益情况', 
       icon: BarChart3, 
       path: '/profit-analysis',
       color: 'bg-orange-500'
-    },
-    { 
-      title: '七星彩', 
-      description: '随机轮盘游戏', 
-      icon: Dice6, 
-      path: '/lottery',
-      color: 'bg-purple-500'
     }
   ];
 

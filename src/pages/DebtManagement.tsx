@@ -1,148 +1,116 @@
-import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Plus, CreditCard, Building2, Trash2, DollarSign } from 'lucide-react';
+import { useState } from 'react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  Plus,
+  Trash2,
+  Users,
+  WalletCards,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 
+const QUICK_AMOUNTS = [1000, 3000, 5000];
+
 export default function DebtManagement() {
   const navigate = useNavigate();
-  const { 
-    players, 
-    debts, 
-    addDebt, 
-    repayDebt, 
-    removeDebt 
-  } = useGameStore();
-  
+  const { players, debts, addDebt, repayDebt, removeDebt } = useGameStore();
+
   const [selectedDebtor, setSelectedDebtor] = useState<string | null>(null);
   const [selectedCreditor, setSelectedCreditor] = useState<string | null>(null);
   const [debtAmount, setDebtAmount] = useState('');
-  const [showAmountInput, setShowAmountInput] = useState(false);
-  const [repayAmounts, setRepayAmounts] = useState<{ [key: string]: string }>({});
-  const svgRef = useRef<SVGSVGElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [repayAmounts, setRepayAmounts] = useState<Record<string, string>>({});
 
-  // 获取债权人名称（包括银行）
-  const getCreditorName = (creditorId: string) => {
-    if (creditorId === 'bank') return '银行';
-    const player = players.find(p => p.id === creditorId);
-    return player?.name || '未知';
+  const totalRemaining = debts.reduce((total, debt) => total + debt.remainingAmount, 0);
+
+  const getPlayer = (playerId: string) => players.find((player) => player.id === playerId);
+  const getPartyName = (partyId: string) => partyId === 'bank' ? '银行' : getPlayer(partyId)?.name || '未知';
+  const getPartyColor = (partyId: string) => partyId === 'bank' ? '#3B82F6' : getPlayer(partyId)?.color || '#94A3B8';
+  const getInitial = (name: string) => Array.from(name.trim())[0] || '玩';
+
+  const resetSelection = () => {
+    setSelectedDebtor(null);
+    setSelectedCreditor(null);
+    setDebtAmount('');
   };
 
-  // 获取债务人名称
-  const getDebtorName = (debtorId: string) => {
-    const player = players.find(p => p.id === debtorId);
-    return player?.name || '未知';
-  };
-
-  // 获取玩家颜色
-  const getPlayerColor = (playerId: string) => {
-    const player = players.find(p => p.id === playerId);
-    return player?.color || '#666';
-  };
-
-  // 处理玩家头像点击
   const handlePlayerClick = (playerId: string) => {
-    if (!selectedDebtor) {
-      // 第一次点击选择债务人
-      setSelectedDebtor(playerId);
-      toast.info(`已选择债务人: ${players.find(p => p.id === playerId)?.name}`);
-    } else if (!selectedCreditor) {
-      // 第二次点击选择债权人
-      if (playerId === selectedDebtor) {
-        toast.error('债务人和债权人不能是同一人');
-        return;
-      }
-      setSelectedCreditor(playerId);
-      setShowAmountInput(true);
-      toast.info(`已选择债权人: ${players.find(p => p.id === playerId)?.name}`);
-    } else {
-      // 重新选择
+    const playerName = getPlayer(playerId)?.name;
+
+    if (!selectedDebtor || selectedCreditor) {
       setSelectedDebtor(playerId);
       setSelectedCreditor(null);
-      setShowAmountInput(false);
       setDebtAmount('');
-      toast.info(`重新选择债务人: ${players.find(p => p.id === playerId)?.name}`);
+      toast.info(`已选择债务人：${playerName}`);
+      return;
     }
+
+    if (playerId === selectedDebtor) {
+      toast.error('债务人和债权人不能是同一人');
+      return;
+    }
+
+    setSelectedCreditor(playerId);
+    toast.info(`已选择债权人：${playerName}`);
   };
 
-  // 处理银行点击
   const handleBankClick = () => {
     if (!selectedDebtor) {
       toast.error('请先选择债务人');
       return;
     }
-    if (!selectedCreditor) {
-      setSelectedCreditor('bank');
-      setShowAmountInput(true);
-      toast.info('已选择债权人: 银行');
-    } else {
-      setSelectedCreditor('bank');
-      setShowAmountInput(true);
-      toast.info('已重新选择债权人: 银行');
-    }
+
+    setSelectedCreditor('bank');
+    toast.info('已选择债权人：银行');
   };
 
-  // 添加新欠款
   const handleAddDebt = () => {
-    if (!selectedDebtor || !selectedCreditor || !debtAmount) {
-      toast.error('请完成选择并输入金额');
+    const amount = Number(debtAmount);
+
+    if (!selectedDebtor || !selectedCreditor) {
+      toast.error('请先选择债务人和债权人');
       return;
     }
-    
-    const amount = parseFloat(debtAmount);
-    if (isNaN(amount) || amount <= 0) {
+
+    if (!Number.isFinite(amount) || amount <= 0) {
       toast.error('请输入有效的欠款金额');
       return;
     }
-    
+
     addDebt(selectedDebtor, selectedCreditor, amount);
     toast.success('欠款记录已添加');
-    
-    // 重置状态
-    setSelectedDebtor(null);
-    setSelectedCreditor(null);
-    setDebtAmount('');
-    setShowAmountInput(false);
+    resetSelection();
   };
 
-  // 取消选择
-  const handleCancel = () => {
-    setSelectedDebtor(null);
-    setSelectedCreditor(null);
-    setDebtAmount('');
-    setShowAmountInput(false);
+  const handlePartialRepay = (debtId: string) => {
+    const amount = Number(repayAmounts[debtId] || 0);
+    const debt = debts.find((item) => item.id === debtId);
+
+    if (!debt || !Number.isFinite(amount) || amount <= 0) {
+      toast.error('请输入有效的偿还金额');
+      return;
+    }
+
+    if (amount > debt.remainingAmount) {
+      toast.error('偿还金额不能超过剩余欠款');
+      return;
+    }
+
+    repayDebt(debtId, amount);
+    setRepayAmounts((current) => ({ ...current, [debtId]: '' }));
+    toast.success(`已偿还 ¥${amount.toLocaleString()}`);
   };
 
-  // 全部偿还
   const handleFullRepay = (debtId: string) => {
     repayDebt(debtId);
     toast.success('债务已全部偿还');
   };
 
-  // 部分偿还
-  const handlePartialRepay = (debtId: string) => {
-    const amount = parseFloat(repayAmounts[debtId] || '0');
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('请输入有效的偿还金额');
-      return;
-    }
-    
-    const debt = debts.find(d => d.id === debtId);
-    if (!debt) return;
-    
-    if (amount > debt.remainingAmount) {
-      toast.error('偿还金额不能超过剩余欠款');
-      return;
-    }
-    
-    repayDebt(debtId, amount);
-    toast.success(`已偿还 ¥${amount.toFixed(2)}`);
-    setRepayAmounts({ ...repayAmounts, [debtId]: '' });
-  };
-
-  // 删除债务记录
   const handleRemoveDebt = (debtId: string) => {
     if (window.confirm('确定要删除这条债务记录吗？')) {
       removeDebt(debtId);
@@ -150,337 +118,329 @@ export default function DebtManagement() {
     }
   };
 
-  // 获取玩家头像位置
-  const getPlayerPosition = (index: number, total: number) => {
-    const radius = 100;
-    const centerX = 200;
-    const centerY = 150;
-    const angle = (index * 2 * Math.PI) / total - Math.PI / 2;
-    return {
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle)
-    };
-  };
-
-  // 获取银行位置（放在左边，玩家圈外面）
-  const getBankPosition = () => {
-    return { x: 20, y: 150 }; // 进一步向外移动到左边边缘
-  };
-
-  // 绘制债务连线
-  const renderDebtLines = () => {
-    if (!containerRef.current) return null;
-    
-    return debts.map((debt) => {
-      const debtorIndex = players.findIndex(p => p.id === debt.debtorId);
-      const creditorIndex = debt.creditorId === 'bank' ? -1 : players.findIndex(p => p.id === debt.creditorId);
-      
-      if (debtorIndex === -1) return null;
-      
-      const debtorPos = getPlayerPosition(debtorIndex, players.length);
-      const creditorPos = debt.creditorId === 'bank' 
-        ? getBankPosition() // 使用新的银行位置函数
-        : getPlayerPosition(creditorIndex, players.length);
-      
-      const lineColor = debt.creditorId === 'bank' ? '#3b82f6' : '#ef4444';
-      const strokeWidth = Math.max(2, Math.min(8, debt.remainingAmount / 1000));
-      
-      return (
-        <g key={debt.id}>
-          <line
-            x1={debtorPos.x}
-            y1={debtorPos.y}
-            x2={creditorPos.x}
-            y2={creditorPos.y}
-            stroke={lineColor}
-            strokeWidth={strokeWidth}
-            strokeDasharray="5,5"
-            opacity={0.7}
-          />
-          {/* 债务金额标签 */}
-          <text
-            x={(debtorPos.x + creditorPos.x) / 2}
-            y={(debtorPos.y + creditorPos.y) / 2 - 5}
-            fill={lineColor}
-            fontSize="12"
-            fontWeight="bold"
-            textAnchor="middle"
-            className="pointer-events-none"
-          >
-            ¥{debt.remainingAmount.toFixed(0)}
-          </text>
-        </g>
-      );
-    });
-  };
+  const selectionLabel = !selectedDebtor
+    ? '选择债务人'
+    : !selectedCreditor
+      ? '选择债权人'
+      : '选择完成，可填写金额';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* 头部 */}
-      <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 px-4 py-4 sticky top-0 z-10">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-rose-50/40 to-blue-50/60">
+      <header className="sticky top-0 z-10 border-b border-white/80 bg-white/80 px-4 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <button 
+            <button
+              type="button"
               onClick={() => navigate('/')}
-              className="p-2 text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-105"
+              aria-label="返回首页"
+              className="rounded-xl p-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               <ArrowLeft size={20} />
             </button>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-r from-red-500 to-pink-600 rounded-xl">
-                <CreditCard className="text-white" size={24} />
+              <div className="rounded-xl bg-gradient-to-br from-red-500 to-pink-600 p-2.5 shadow-lg shadow-red-500/20">
+                <CreditCard className="text-white" size={22} />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">欠债管理</h1>
-                <p className="text-sm text-gray-500">可视化债务关系管理</p>
+                <h1 className="text-xl font-bold tracking-tight text-slate-900">欠债管理</h1>
+                <p className="text-xs text-slate-500">记录、查看与偿还债务</p>
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-4xl mx-auto p-4 md:p-6">
-        <div className="space-y-6">
-          {/* 可视化债务关系 */}
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-sm p-4 md:p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">债务关系图</h2>
-            <p className="text-sm text-gray-500 mb-6">点击头像选择债务人和债权人</p>
-            
-            <div ref={containerRef} className="relative w-full h-80 mx-auto max-w-md">
-              {/* SVG 画布 */}
-              <svg ref={svgRef} className="absolute inset-0 w-full h-full">
-                {renderDebtLines()}
-              </svg>
-              
-              {/* 银行图标 */}
-              <div 
-                className={cn(
-                  "absolute w-20 h-12 bg-gradient-to-r from-blue-500 via-blue-600 to-cyan-500",
-                  "rounded-xl flex items-center justify-center cursor-pointer transition-all duration-300",
-                  "hover:scale-105 hover:shadow-xl shadow-lg border-2 border-white/30",
-                  "backdrop-blur-sm",
-                  selectedCreditor === 'bank' && "ring-4 ring-blue-300 scale-105 shadow-2xl"
-                )}
-                style={{ 
-                  left: `${getBankPosition().x - 40}px`, 
-                  top: `${getBankPosition().y - 24}px`,
-                  background: 'linear-gradient(to right, #3b82f6, #2563eb, #06b6d4)'
-                }}
-                onClick={handleBankClick}
-              >
-                <div className="flex items-center gap-1">
-                  <Building2 className="text-white drop-shadow-sm" size={20} />
-                  <span className="text-white text-xs font-semibold drop-shadow-sm">银行</span>
-                </div>
+          <div className="hidden rounded-full border border-red-100 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700 sm:block">
+            {debts.length} 条债务
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
+        <div className="mb-5 grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-white/90 bg-white/80 p-4 shadow-sm backdrop-blur">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+              <WalletCards size={17} className="text-red-500" />
+              待偿还总额
+            </div>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">¥{totalRemaining.toLocaleString()}</p>
+          </div>
+          <div className="rounded-2xl border border-white/90 bg-white/80 p-4 shadow-sm backdrop-blur">
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+              <Users size={17} className="text-blue-500" />
+              债务关系
+            </div>
+            <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{debts.length}<span className="ml-1 text-sm font-medium text-slate-400">条</span></p>
+          </div>
+        </div>
+
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.4fr)]">
+          <section className="rounded-3xl border border-white/90 bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur lg:sticky lg:top-24">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">新建欠款</h2>
+                <p className="mt-1 text-sm text-slate-500">{selectionLabel}</p>
               </div>
-              
-              {/* 玩家头像 */}
-              {players.map((player, index) => {
-                const position = getPlayerPosition(index, players.length);
-                const isSelected = selectedDebtor === player.id || selectedCreditor === player.id;
-                const isDebtor = selectedDebtor === player.id;
-                const isCreditor = selectedCreditor === player.id;
-                
-                return (
-                  <div
-                    key={player.id}
-                    className={cn(
-                      "absolute w-16 h-16 rounded-full flex items-center justify-center",
-                      "cursor-pointer transition-all duration-200 hover:scale-110 hover:shadow-lg",
-                      "text-white font-bold text-lg",
-                      isSelected && "ring-4 scale-110",
-                      isDebtor && "ring-red-300",
-                      isCreditor && "ring-green-300",
-                      !isSelected && "hover:ring-2 hover:ring-gray-300"
-                    )}
-                    style={{
-                      left: `${position.x - 32}px`,
-                      top: `${position.y - 32}px`,
-                      backgroundColor: player.color
-                    }}
-                    onClick={() => handlePlayerClick(player.id)}
-                  >
-                    {player.name.charAt(0)}
-                  </div>
-                );
-              })}
-            </div>
-            
-            {/* 选择状态显示 */}
-            <div className="mt-6 space-y-3">
-              {selectedDebtor && (
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span>债务人: {players.find(p => p.id === selectedDebtor)?.name}</span>
-                </div>
-              )}
-              {selectedCreditor && (
-                <div className="flex items-center gap-2 text-sm">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span>债权人: {selectedCreditor === 'bank' ? '银行' : players.find(p => p.id === selectedCreditor)?.name}</span>
-                </div>
+              {(selectedDebtor || selectedCreditor) && (
+                <button
+                  type="button"
+                  onClick={resetSelection}
+                  className="text-sm font-medium text-slate-400 transition-colors hover:text-slate-700"
+                >
+                  重置
+                </button>
               )}
             </div>
-            
-            {/* 金额输入 */}
-            {showAmountInput && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-xl">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  欠款金额
-                </label>
-                <div className="space-y-3">
+
+            <div className="mt-5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border border-slate-100 bg-slate-50/80 p-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDebtor(null);
+                  setSelectedCreditor(null);
+                  setDebtAmount('');
+                }}
+                className="min-w-0 rounded-xl p-2 text-center transition-colors hover:bg-white"
+              >
+                <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-red-100 text-sm font-bold text-red-600">
+                  {selectedDebtor ? getInitial(getPartyName(selectedDebtor)) : '1'}
+                </span>
+                <span className="mt-2 block truncate text-sm font-semibold text-slate-800">
+                  {selectedDebtor ? getPartyName(selectedDebtor) : '债务人'}
+                </span>
+              </button>
+
+              <div className="flex flex-col items-center gap-1 text-slate-400">
+                <span className="text-[10px] font-medium">欠款给</span>
+                <ArrowRight size={22} />
+              </div>
+
+              <button
+                type="button"
+                disabled={!selectedDebtor}
+                onClick={() => {
+                  setSelectedCreditor(null);
+                  setDebtAmount('');
+                }}
+                className="min-w-0 rounded-xl p-2 text-center transition-colors hover:bg-white disabled:cursor-default"
+              >
+                <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-sm font-bold text-blue-600">
+                  {selectedCreditor ? getInitial(getPartyName(selectedCreditor)) : '2'}
+                </span>
+                <span className="mt-2 block truncate text-sm font-semibold text-slate-800">
+                  {selectedCreditor ? getPartyName(selectedCreditor) : '债权人'}
+                </span>
+              </button>
+            </div>
+
+            <div className="mt-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">玩家</p>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-3">
+                {players.map((player) => {
+                  const isDebtor = selectedDebtor === player.id;
+                  const isCreditor = selectedCreditor === player.id;
+
+                  return (
+                    <button
+                      key={player.id}
+                      type="button"
+                      onClick={() => handlePlayerClick(player.id)}
+                      className={cn(
+                        'flex min-w-0 flex-col items-center rounded-xl border px-2 py-3 transition-all',
+                        isDebtor && 'border-red-300 bg-red-50 ring-2 ring-red-100',
+                        isCreditor && 'border-blue-300 bg-blue-50 ring-2 ring-blue-100',
+                        !isDebtor && !isCreditor && 'border-slate-100 bg-white hover:border-slate-200 hover:bg-slate-50',
+                      )}
+                    >
+                      <span
+                        className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm"
+                        style={{ backgroundColor: player.color }}
+                      >
+                        {getInitial(player.name)}
+                      </span>
+                      <span className="mt-2 w-full truncate text-xs font-medium text-slate-700">{player.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {selectedDebtor && (
+              <button
+                type="button"
+                onClick={handleBankClick}
+                className={cn(
+                  'mt-3 flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all',
+                  selectedCreditor === 'bank'
+                    ? 'border-blue-300 bg-blue-50 text-blue-700 ring-2 ring-blue-100'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:bg-blue-50/50',
+                )}
+              >
+                <Building2 size={17} />
+                选择银行为债权人
+              </button>
+            )}
+
+            {selectedDebtor && selectedCreditor && (
+              <div className="mt-5 border-t border-slate-100 pt-5">
+                <label htmlFor="debt-amount" className="text-sm font-semibold text-slate-700">欠款金额</label>
+                <div className="relative mt-2">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-semibold text-slate-400">¥</span>
                   <input
+                    id="debt-amount"
                     type="number"
                     value={debtAmount}
-                    onChange={(e) => setDebtAmount(e.target.value)}
-                    placeholder="输入欠款金额"
+                    onChange={(event) => setDebtAmount(event.target.value)}
+                    onKeyDown={(event) => event.key === 'Enter' && handleAddDebt()}
                     min="0.01"
                     step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                    placeholder="输入金额"
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 text-lg font-semibold text-slate-900 outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
                   />
-                  <div className="flex gap-3">
-                    <button
-                      onClick={handleAddDebt}
-                      className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      添加
-                    </button>
-                    <button
-                      onClick={handleCancel}
-                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      取消
-                    </button>
-                  </div>
                 </div>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {QUICK_AMOUNTS.map((amount) => (
+                    <button
+                      key={amount}
+                      type="button"
+                      onClick={() => setDebtAmount(String(amount))}
+                      className="rounded-lg bg-slate-100 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
+                    >
+                      ¥{amount.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddDebt}
+                  className="mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-red-500 to-pink-600 font-semibold text-white shadow-lg shadow-red-500/20 transition-all hover:from-red-600 hover:to-pink-700"
+                >
+                  <Plus size={18} />
+                  添加欠款
+                </button>
               </div>
             )}
-          </div>
+          </section>
 
-          {/* 债务详情列表 */}
-          <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-sm">
-            <div className="p-4 md:p-6 border-b border-gray-200/50">
-              <h2 className="text-lg font-semibold text-gray-900">债务详情</h2>
-              <p className="text-sm text-gray-500 mt-1">管理现有债务记录</p>
+          <section className="rounded-3xl border border-white/90 bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">债务关系</h2>
+                <p className="mt-1 text-sm text-slate-500">清晰显示资金流向与剩余金额</p>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">{debts.length} 条</span>
             </div>
-            
-            <div className="p-4 md:p-6 max-h-96 overflow-y-auto space-y-4">
-              {debts.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <CreditCard size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>暂无债务记录</p>
-                  <p className="text-sm">点击左侧头像添加新的欠款记录</p>
+
+            {debts.length === 0 ? (
+              <div className="flex min-h-72 flex-col items-center justify-center text-center">
+                <div className="rounded-2xl bg-slate-100 p-4 text-slate-400">
+                  <CreditCard size={30} />
                 </div>
-              ) : (
-                debts.map((debt) => {
-                  const debtorName = getDebtorName(debt.debtorId);
-                  const creditorName = getCreditorName(debt.creditorId);
-                  const debtorColor = getPlayerColor(debt.debtorId);
-                  const isBank = debt.creditorId === 'bank';
-                  
+                <h3 className="mt-4 font-semibold text-slate-700">暂无债务关系</h3>
+                <p className="mt-1 text-sm text-slate-400">从左侧选择双方并添加欠款</p>
+              </div>
+            ) : (
+              <div className="mt-5 space-y-4">
+                {debts.map((debt) => {
+                  const debtorName = getPartyName(debt.debtorId);
+                  const creditorName = getPartyName(debt.creditorId);
+                  const repaidProgress = debt.originalAmount > 0
+                    ? Math.max(0, Math.min(100, (1 - debt.remainingAmount / debt.originalAmount) * 100))
+                    : 0;
+
                   return (
-                    <div key={debt.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                      {/* 债务信息 */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
-                            style={{ backgroundColor: debtorColor }}
+                    <article key={debt.id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5">
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                        <div className="min-w-0 text-center">
+                          <span
+                            className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-base font-bold text-white shadow-sm"
+                            style={{ backgroundColor: getPartyColor(debt.debtorId) }}
                           >
-                            {debtorName.charAt(0)}
+                            {getInitial(debtorName)}
+                          </span>
+                          <p className="mt-2 truncate text-sm font-semibold text-slate-800">{debtorName}</p>
+                          <p className="text-[11px] text-slate-400">债务人</p>
+                        </div>
+
+                        <div className="min-w-24 text-center">
+                          <p className="text-lg font-bold tracking-tight text-red-600">¥{debt.remainingAmount.toLocaleString()}</p>
+                          <div className="mt-1 flex items-center gap-1 text-red-300">
+                            <span className="h-px flex-1 bg-red-200" />
+                            <ArrowRight size={18} />
+                            <span className="h-px flex-1 bg-red-200" />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{debtorName}</span>
-                              <span className="text-gray-500">欠</span>
-                              {isBank ? (
-                                <div className="flex items-center gap-1">
-                                  <Building2 size={16} className="text-blue-600" />
-                                  <span className="font-medium text-blue-600">{creditorName}</span>
-                                </div>
-                              ) : (
-                                <span className="font-medium">{creditorName}</span>
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-600">
-                              原始: ¥{debt.originalAmount.toFixed(2)}
-                            </div>
-                          </div>
+                          <p className="mt-1 text-[10px] font-medium text-slate-400">剩余未还</p>
+                        </div>
+
+                        <div className="min-w-0 text-center">
+                          <span
+                            className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-base font-bold text-white shadow-sm"
+                            style={{ backgroundColor: getPartyColor(debt.creditorId) }}
+                          >
+                            {debt.creditorId === 'bank' ? <Building2 size={21} /> : getInitial(creditorName)}
+                          </span>
+                          <p className="mt-2 truncate text-sm font-semibold text-slate-800">{creditorName}</p>
+                          <p className="text-[11px] text-slate-400">债权人</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="mb-1.5 flex items-center justify-between text-xs text-slate-400">
+                          <span>已还款进度</span>
+                          <span>原始 ¥{debt.originalAmount.toLocaleString()}</span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                          <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500" style={{ width: `${repaidProgress}%` }} />
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                        <div className="relative min-w-0 flex-1">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">¥</span>
+                          <input
+                            type="number"
+                            value={repayAmounts[debt.id] || ''}
+                            onChange={(event) => setRepayAmounts((current) => ({ ...current, [debt.id]: event.target.value }))}
+                            onKeyDown={(event) => event.key === 'Enter' && handlePartialRepay(debt.id)}
+                            min="0.01"
+                            max={debt.remainingAmount}
+                            step="0.01"
+                            placeholder="偿还金额"
+                            aria-label={`${debtorName}偿还金额`}
+                            className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-7 pr-3 text-sm outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-100"
+                          />
                         </div>
                         <button
-                          onClick={() => handleRemoveDebt(debt.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          type="button"
+                          onClick={() => handlePartialRepay(debt.id)}
+                          className="h-10 rounded-xl bg-emerald-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-600"
                         >
-                          <Trash2 size={16} />
+                          偿还
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleFullRepay(debt.id)}
+                          className="flex h-10 items-center justify-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+                        >
+                          <CheckCircle2 size={16} />
+                          全部还清
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDebt(debt.id)}
+                          aria-label="删除债务"
+                          className="flex h-10 w-full items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-red-50 hover:text-red-600 sm:w-10"
+                        >
+                          <Trash2 size={17} />
                         </button>
                       </div>
-                      
-                      {/* 剩余金额 */}
-                      <div className="mb-3">
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-red-600">
-                            ¥{debt.remainingAmount.toFixed(2)}
-                          </div>
-                          <div className="text-sm text-gray-500">剩余未还</div>
-                        </div>
-                      </div>
-                      
-                      {/* 偿还操作 */}
-                      <div className="space-y-3">
-                        <input
-                          type="number"
-                          placeholder="偿还金额"
-                          min="0.01"
-                          max={debt.remainingAmount}
-                          step="0.01"
-                          value={repayAmounts[debt.id] || ''}
-                          onChange={(e) => setRepayAmounts({ 
-                            ...repayAmounts, 
-                            [debt.id]: e.target.value 
-                          })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handlePartialRepay(debt.id)}
-                            className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors"
-                          >
-                            部分偿还
-                          </button>
-                          <button
-                            onClick={() => handleFullRepay(debt.id)}
-                            className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
-                          >
-                            全部偿还
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                    </article>
                   );
-                })
-              )}
-            </div>
-          </div>
+                })}
+              </div>
+            )}
+          </section>
         </div>
-        
-        {/* 说明信息 */}
-        <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200/50">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg mt-1">
-              <CreditCard className="text-blue-600" size={20} />
-            </div>
-            <div>
-              <h3 className="font-semibold text-blue-900 mb-2">使用说明</h3>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• 第一次点击头像选择债务人（红色边框）</li>
-                <li>• 第二次点击头像或银行选择债权人（绿色边框）</li>
-                <li>• 线条粗细表示债务金额大小，虚线连接债务关系</li>
-                <li>• 蓝色线条表示欠银行，红色线条表示玩家间债务</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
   );
 }
