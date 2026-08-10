@@ -10,7 +10,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGameStore, type StockType } from '../store/gameStore';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
@@ -24,10 +24,11 @@ const stockMeta: Record<StockType, { icon: typeof Building2; color: string; surf
 
 export default function StockMarket() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { stocks, adjustStockPrice, undoLastOperation, history } = useGameStore();
   const [customAmount, setCustomAmount] = useState<Record<string, string>>({});
-  const [selectedStock, setSelectedStock] = useState<StockType>('property');
   const [isIncrease, setIsIncrease] = useState(true);
+  const selectedStock: StockType = searchParams.get('stock') === 'education' ? 'education' : 'property';
 
   const currentStock = stocks[selectedStock];
   const meta = stockMeta[selectedStock];
@@ -107,7 +108,7 @@ export default function StockMarket() {
               <button
                 key={stock.id}
                 type="button"
-                onClick={() => setSelectedStock(stock.id)}
+                onClick={() => setSearchParams({ stock: stock.id }, { replace: true })}
                 className={cn(
                   'flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
                   isSelected
@@ -131,7 +132,7 @@ export default function StockMarket() {
         <section className="mt-5 rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
           <div>
             <p className="text-sm font-medium text-slate-500">{currentStock.name}</p>
-            <p className="mt-2 text-5xl font-black tracking-[-0.045em] text-slate-900 sm:text-6xl">¥{currentStock.price.toFixed(2)}</p>
+            <p className="mt-2 text-5xl font-bold tracking-tight text-slate-900 sm:text-6xl">¥{currentStock.price.toFixed(2)}</p>
           </div>
 
           <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5">

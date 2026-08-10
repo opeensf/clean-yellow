@@ -128,7 +128,7 @@ export default function Home() {
                   <button
                     key={stock.id}
                     type="button"
-                    onClick={() => navigate('/stocks')}
+                    onClick={() => navigate(`/stocks?stock=${stock.id}`)}
                     className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-blue-100 hover:bg-white hover:shadow-md"
                   >
                     <div className="flex items-center justify-between">
