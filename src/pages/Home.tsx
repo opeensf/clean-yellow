@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Users, Dice6, ArrowUp, ArrowDown, BarChart3, RotateCcw, Sparkles, Shield } from 'lucide-react';
+import { TrendingUp, Users, Dice6, ArrowUp, ArrowDown, BarChart3, RotateCcw, Sparkles, CreditCard } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -65,10 +65,10 @@ export default function Home() {
       color: 'bg-green-500'
     },
     { 
-      title: '官方保险', 
-      description: '管理玩家保险费用', 
-      icon: Shield, 
-      path: '/insurance',
+      title: '欠债管理',
+      description: '记录与管理玩家欠款',
+      icon: CreditCard,
+      path: '/debts',
       color: 'bg-indigo-500'
     },
     { 
