@@ -164,8 +164,11 @@ export default function DebtManagement() {
       toast.error('请输入有效的欠款金额');
       return;
     }
+    const willMerge = debts.some(
+      (debt) => debt.debtorId === selectedDebtor && debt.creditorId === selectedCreditor,
+    );
     addDebt(selectedDebtor, selectedCreditor, amount);
-    toast.success('欠款记录已添加');
+    toast.success(willMerge ? '已合并至相同债务记录' : '欠款记录已添加');
     resetSelection();
   };
 

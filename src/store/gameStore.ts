@@ -473,19 +473,47 @@ export const useGameStore = create<GameState>()(persist(
     // 欠债管理方法
     addDebt: (debtorId, creditorId, amount) => {
       const now = Date.now();
-      const newDebt: DebtRecord = {
-        id: `debt-${now}`,
-        debtorId,
-        creditorId,
-        originalAmount: amount,
-        remainingAmount: amount,
-        createdAt: now,
-        updatedAt: now
-      };
-      
-      set((state) => ({
-        debts: [...state.debts, newDebt]
-      }));
+
+      set((state) => {
+        const matchingDebts = state.debts.filter(
+          debt => debt.debtorId === debtorId && debt.creditorId === creditorId
+        );
+
+        if (matchingDebts.length === 0) {
+          const newDebt: DebtRecord = {
+            id: `debt-${now}`,
+            debtorId,
+            creditorId,
+            originalAmount: amount,
+            remainingAmount: amount,
+            createdAt: now,
+            updatedAt: now
+          };
+          return { debts: [...state.debts, newDebt] };
+        }
+
+        const mergedOriginalAmount = Math.round((
+          matchingDebts.reduce((total, debt) => total + debt.originalAmount, 0) + amount
+        ) * 100) / 100;
+        const mergedRemainingAmount = Math.round((
+          matchingDebts.reduce((total, debt) => total + debt.remainingAmount, 0) + amount
+        ) * 100) / 100;
+        const primaryDebtId = matchingDebts[0].id;
+
+        return {
+          debts: state.debts.flatMap((debt) => {
+            const isSameRelation = debt.debtorId === debtorId && debt.creditorId === creditorId;
+            if (!isSameRelation) return [debt];
+            if (debt.id !== primaryDebtId) return [];
+            return [{
+              ...debt,
+              originalAmount: mergedOriginalAmount,
+              remainingAmount: mergedRemainingAmount,
+              updatedAt: now
+            }];
+          })
+        };
+      });
     },
     
     repayDebt: (debtId, amount) => {
