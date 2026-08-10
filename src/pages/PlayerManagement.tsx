@@ -4,7 +4,6 @@ import {
   Building2,
   ChevronDown,
   ChevronUp,
-  DollarSign,
   Edit2,
   GraduationCap,
   Minus,
@@ -325,17 +324,6 @@ export default function PlayerManagement() {
       </div>
 
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
-        <section className="mb-5 grid grid-cols-2 gap-3">
-          <div className="rounded-2xl border border-white bg-white/85 p-4 shadow-sm backdrop-blur">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-500"><Users size={17} className="text-blue-500" />玩家数量</div>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">{players.length}<span className="ml-1 text-sm font-medium text-slate-400">名</span></p>
-          </div>
-          <div className="rounded-2xl border border-white bg-white/85 p-4 shadow-sm backdrop-blur">
-            <div className="flex items-center gap-2 text-sm font-medium text-slate-500"><DollarSign size={17} className="text-emerald-500" />股票总市值</div>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">¥{players.reduce((total, player) => total + getPlayerTotalValue(player.id), 0).toFixed(2)}</p>
-          </div>
-        </section>
-
         <section className="space-y-4">
         {/* 玩家列表 */}
         {players.map((player) => {
@@ -357,11 +345,11 @@ export default function PlayerManagement() {
                     >{Array.from(player.name)[0]}</span>
                     <div className="min-w-0">
                       <h3 className="truncate font-semibold text-slate-900">{player.name}</h3>
-                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                        <span className="font-semibold text-blue-600">市值 ¥{totalValue.toFixed(2)}</span>
-                        <span>现金 ¥{player.cash.toFixed(2)}</span>
-                        <span>房产 {player.stocks.property} · 教育 {player.stocks.education}</span>
+                      <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                        <span className="text-xs font-semibold text-slate-400">股值</span>
+                        <span className="text-2xl font-bold tracking-tight text-slate-900">¥{totalValue.toFixed(2)}</span>
                       </div>
+                      <p className="mt-0.5 text-xs text-slate-500">房产 {player.stocks.property} 股 · 教育 {player.stocks.education} 股</p>
                     </div>
                   </div>
                   
@@ -553,7 +541,7 @@ export default function PlayerManagement() {
                             <div className="min-w-0 flex-1">
                               <h5 className="font-semibold text-slate-800">{stock.name}</h5>
                               <p className="text-xs text-slate-500">
-                                {holdingCount} 股 · 市值 ¥{holdingValue.toFixed(2)}
+                                {holdingCount} 股 · 股值 ¥{holdingValue.toFixed(2)}
                               </p>
                               {earnings && (
                                 <p className="text-xs font-semibold text-emerald-600">
