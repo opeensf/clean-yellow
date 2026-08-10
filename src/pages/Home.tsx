@@ -75,11 +75,20 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/60">
       <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
-        <header className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-blue-600">游戏控制台</p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">扫黄之旅辅助工具</h1>
-            <p className="mt-1 text-sm text-slate-500">陵水县扫黄组制作出品</p>
+        <header className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3.5">
+            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+              <img
+                src={`${import.meta.env.BASE_URL}clean-yellow-team-logo.png`}
+                alt="陵水县黎族自治县扫黄大队标志"
+                className="absolute max-w-none"
+                style={{ width: 180, left: -64, top: -14 }}
+              />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">扫黄之旅辅助工具</h1>
+              <p className="mt-1 truncate text-sm text-slate-500">陵水县黎族自治县扫黄大队</p>
+            </div>
           </div>
           <button
             type="button"
