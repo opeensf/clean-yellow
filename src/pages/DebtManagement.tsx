@@ -56,6 +56,30 @@ function getCurveGeometry(from: Point, to: Point, curveOffset: number, labelPosi
   };
 }
 
+function getReadableLineColor(hexColor: string): string {
+  const normalized = hexColor.replace('#', '');
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return '#64748B';
+
+  const [red, green, blue] = [0, 2, 4].map((offset) => parseInt(normalized.slice(offset, offset + 2), 16) / 255);
+  const maximum = Math.max(red, green, blue);
+  const minimum = Math.min(red, green, blue);
+  const delta = maximum - minimum;
+  const lightness = (maximum + minimum) / 2;
+  const saturation = delta === 0 ? 0 : delta / (1 - Math.abs(2 * lightness - 1));
+  let hue = 0;
+
+  if (delta !== 0) {
+    if (maximum === red) hue = 60 * (((green - blue) / delta) % 6);
+    if (maximum === green) hue = 60 * ((blue - red) / delta + 2);
+    if (maximum === blue) hue = 60 * ((red - green) / delta + 4);
+  }
+
+  if (hue < 0) hue += 360;
+  const readableSaturation = Math.max(58, Math.round(saturation * 100));
+  const readableLightness = Math.min(56, Math.max(42, Math.round(lightness * 100)));
+  return `hsl(${Math.round(hue)} ${readableSaturation}% ${readableLightness}%)`;
+}
+
 export default function DebtManagement() {
   const navigate = useNavigate();
   const { players, debts, addDebt, repayDebt, removeDebt } = useGameStore();
@@ -218,12 +242,14 @@ export default function DebtManagement() {
           <div className="mt-4 overflow-hidden rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-50 via-white to-blue-50/50">
             <svg viewBox={`0 0 ${GRAPH_WIDTH} ${GRAPH_HEIGHT}`} className="h-[390px] w-full sm:h-[470px]" role="img" aria-label="债务关系图">
               <defs>
-                <marker id="arrow-bank" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L8,3 z" fill="#3B82F6" />
-                </marker>
-                <marker id="arrow-player" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
-                  <path d="M0,0 L0,6 L8,3 z" fill="#F43F5E" />
-                </marker>
+                {debts.map((debt) => {
+                  const debtorColor = getReadableLineColor(getPlayer(debt.debtorId)?.color || '#64748B');
+                  return (
+                    <marker key={debt.id} id={`arrow-${debt.id}`} markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+                      <path d="M0,0 L0,6 L8,3 z" fill={debtorColor} />
+                    </marker>
+                  );
+                })}
                 <marker id="arrow-preview" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
                   <path d="M0,0 L0,6 L8,3 z" fill="#8B5CF6" />
                 </marker>
@@ -242,14 +268,14 @@ export default function DebtManagement() {
                   isBankDebt ? ((index % 3) - 1) * 18 : 205 + (index % 2) * 24,
                   isBankDebt ? 0.42 : 0.24,
                 );
-                const color = isBankDebt ? '#3B82F6' : '#F43F5E';
+                const color = getReadableLineColor(getPlayer(debt.debtorId)?.color || '#64748B');
                 const label = `¥${debt.remainingAmount.toLocaleString()}`;
                 const labelWidth = Math.max(54, label.length * 9 + 18);
                 return (
                   <g key={debt.id}>
                     <title>{getPartyName(debt.debtorId)} 欠 {getPartyName(debt.creditorId)} {label}</title>
-                    <path d={geometry.path} fill="none" stroke={color} strokeWidth="3" strokeOpacity="0.72" markerEnd={`url(#${isBankDebt ? 'arrow-bank' : 'arrow-player'})`} />
-                    <rect x={geometry.labelX - labelWidth / 2} y={geometry.labelY - 14} width={labelWidth} height="28" rx="14" fill="white" stroke={isBankDebt ? '#BFDBFE' : '#FECDD3'} />
+                    <path d={geometry.path} fill="none" stroke={color} strokeWidth="3" strokeOpacity="0.78" markerEnd={`url(#arrow-${debt.id})`} />
+                    <rect x={geometry.labelX - labelWidth / 2} y={geometry.labelY - 14} width={labelWidth} height="28" rx="14" fill="white" stroke={color} strokeOpacity="0.3" />
                     <text x={geometry.labelX} y={geometry.labelY + 5} textAnchor="middle" fill={color} fontSize="13" fontWeight="700">{label}</text>
                   </g>
                 );
@@ -291,8 +317,6 @@ export default function DebtManagement() {
                   >
                     <circle r={NODE_RADIUS} fill={player.color} filter="url(#node-shadow)" stroke={stroke} strokeWidth={isDebtor || isCreditor ? 7 : 4} />
                     <text y="7" textAnchor="middle" fill="white" fontSize="22" fontWeight="700">{getInitial(player.name)}</text>
-                    <rect x="-45" y="48" width="90" height="25" rx="12.5" fill="white" stroke="#E2E8F0" />
-                    <text y="65" textAnchor="middle" fill="#334155" fontSize="12" fontWeight="600">{player.name}</text>
                     {(isDebtor || isCreditor) && (
                       <g>
                         <rect x="-29" y="-61" width="58" height="22" rx="11" fill={isDebtor ? '#FFF1F2' : '#EFF6FF'} />
@@ -367,6 +391,12 @@ export default function DebtManagement() {
                         <p className="mt-1 text-xs text-slate-400">原始 ¥{debt.originalAmount.toLocaleString()} · 已还 {repaidProgress.toFixed(0)}%</p>
                       </div>
                       <p className="shrink-0 text-lg font-bold text-red-600">¥{debt.remainingAmount.toLocaleString()}</p>
+                    </div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200/80" role="progressbar" aria-label={`${debtorName}的还款进度`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(repaidProgress)}>
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-[width] duration-300"
+                        style={{ width: `${repaidProgress}%` }}
+                      />
                     </div>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                       <div className="relative min-w-0 flex-1">

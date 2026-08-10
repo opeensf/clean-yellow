@@ -87,7 +87,7 @@ export default function Home() {
             </div>
             <div className="min-w-0">
               <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">扫黄之旅辅助工具</h1>
-              <p className="mt-1 truncate text-sm text-slate-500">陵水县黎族自治县扫黄大队</p>
+              <p className="mt-1 truncate text-sm text-slate-500">陵水县扫黄组开发制作</p>
             </div>
           </div>
           <button
