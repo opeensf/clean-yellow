@@ -80,6 +80,13 @@ function getReadableLineColor(hexColor: string): string {
   return `hsl(${Math.round(hue)} ${readableSaturation}% ${readableLightness}%)`;
 }
 
+function getColorWithAlpha(hexColor: string, alpha: number): string {
+  const normalized = hexColor.replace('#', '');
+  if (!/^[0-9a-f]{6}$/i.test(normalized)) return `rgba(100, 116, 139, ${alpha})`;
+  const [red, green, blue] = [0, 2, 4].map((offset) => parseInt(normalized.slice(offset, offset + 2), 16));
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
 export default function DebtManagement() {
   const navigate = useNavigate();
   const { players, debts, addDebt, repayDebt, removeDebt } = useGameStore();
@@ -87,6 +94,7 @@ export default function DebtManagement() {
   const [selectedCreditor, setSelectedCreditor] = useState<string | null>(null);
   const [debtAmount, setDebtAmount] = useState('');
   const [repayAmounts, setRepayAmounts] = useState<Record<string, string>>({});
+  const [focusedDebtId, setFocusedDebtId] = useState<string | null>(null);
 
   const totalRemaining = debts.reduce((total, debt) => total + debt.remainingAmount, 0);
   const getPlayer = (playerId: string) => players.find((player) => player.id === playerId);
@@ -111,6 +119,13 @@ export default function DebtManagement() {
     setSelectedDebtor(null);
     setSelectedCreditor(null);
     setDebtAmount('');
+  };
+
+  const jumpToDebt = (debtId: string) => {
+    setFocusedDebtId(debtId);
+    const debtCard = document.getElementById(`debt-card-${debtId}`);
+    debtCard?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    debtCard?.focus({ preventScroll: true });
   };
 
   const handlePlayerClick = (playerId: string) => {
@@ -272,8 +287,17 @@ export default function DebtManagement() {
                 const label = `¥${debt.remainingAmount.toLocaleString()}`;
                 const labelWidth = Math.max(54, label.length * 9 + 18);
                 return (
-                  <g key={debt.id}>
+                  <g
+                    key={debt.id}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`查看${getPartyName(debt.debtorId)}欠${getPartyName(debt.creditorId)}的债务记录`}
+                    onClick={() => jumpToDebt(debt.id)}
+                    onKeyDown={(event) => (event.key === 'Enter' || event.key === ' ') && jumpToDebt(debt.id)}
+                    className="cursor-pointer outline-none"
+                  >
                     <title>{getPartyName(debt.debtorId)} 欠 {getPartyName(debt.creditorId)} {label}</title>
+                    <path d={geometry.path} fill="none" stroke="transparent" strokeWidth="16" />
                     <path d={geometry.path} fill="none" stroke={color} strokeWidth="3" strokeOpacity="0.78" markerEnd={`url(#arrow-${debt.id})`} />
                     <rect x={geometry.labelX - labelWidth / 2} y={geometry.labelY - 14} width={labelWidth} height="28" rx="14" fill="white" stroke={color} strokeOpacity="0.3" />
                     <text x={geometry.labelX} y={geometry.labelY + 5} textAnchor="middle" fill={color} fontSize="13" fontWeight="700">{label}</text>
@@ -378,24 +402,47 @@ export default function DebtManagement() {
               {debts.map((debt) => {
                 const debtorName = getPartyName(debt.debtorId);
                 const creditorName = getPartyName(debt.creditorId);
+                const debtor = getPlayer(debt.debtorId);
+                const debtorColor = getReadableLineColor(debtor?.color || '#64748B');
+                const debtorTint = getColorWithAlpha(debtor?.color || '#64748B', 0.13);
+                const isFocused = focusedDebtId === debt.id;
                 const repaidProgress = debt.originalAmount > 0
                   ? Math.max(0, Math.min(100, (1 - debt.remainingAmount / debt.originalAmount) * 100))
                   : 0;
                 return (
-                  <article key={debt.id} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+                  <article
+                    key={debt.id}
+                    id={`debt-card-${debt.id}`}
+                    tabIndex={-1}
+                    className="relative overflow-hidden rounded-2xl border bg-white p-4 pl-5 outline-none transition-all duration-300"
+                    style={{
+                      borderColor: isFocused ? debtorColor : getColorWithAlpha(debtor?.color || '#64748B', 0.22),
+                      background: `linear-gradient(135deg, ${debtorTint} 0%, rgba(255, 255, 255, 0.98) 44%)`,
+                      boxShadow: isFocused ? `0 14px 32px ${getColorWithAlpha(debtor?.color || '#64748B', 0.2)}` : 'none',
+                    }}
+                  >
+                    <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: debtorColor }} />
                     <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 font-semibold text-slate-800">
-                          <span className="truncate">{debtorName}</span><ArrowRight size={15} className="shrink-0 text-slate-400" /><span className="truncate">{creditorName}</span>
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span
+                          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm"
+                          style={{ backgroundColor: debtor?.color || '#64748B' }}
+                        >
+                          {getInitial(debtorName)}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 font-semibold text-slate-800">
+                            <span className="truncate">{debtorName}</span><ArrowRight size={15} className="shrink-0 text-slate-400" /><span className="truncate">{creditorName}</span>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-400">原始 ¥{debt.originalAmount.toLocaleString()} · 已还 {repaidProgress.toFixed(0)}%</p>
                         </div>
-                        <p className="mt-1 text-xs text-slate-400">原始 ¥{debt.originalAmount.toLocaleString()} · 已还 {repaidProgress.toFixed(0)}%</p>
                       </div>
                       <p className="shrink-0 text-lg font-bold text-red-600">¥{debt.remainingAmount.toLocaleString()}</p>
                     </div>
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200/80" role="progressbar" aria-label={`${debtorName}的还款进度`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(repaidProgress)}>
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500 transition-[width] duration-300"
-                        style={{ width: `${repaidProgress}%` }}
+                        className="h-full rounded-full transition-[width] duration-300"
+                        style={{ width: `${repaidProgress}%`, backgroundColor: debtorColor }}
                       />
                     </div>
                     <div className="mt-3 flex flex-col gap-2 sm:flex-row">

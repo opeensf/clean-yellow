@@ -128,123 +128,134 @@ export default function StockMarket() {
           })}
         </div>
 
-        <div className="mt-5 grid items-start gap-5 lg:grid-cols-[1.35fr_0.65fr]">
-          <section className="rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
-            <div className="flex items-end justify-between gap-3">
+        <section className="mt-5 rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-slate-500">{currentStock.name}</p>
+              <p className="mt-1 text-4xl font-bold tracking-tight text-slate-900">¥{currentStock.price.toFixed(2)}</p>
+            </div>
+            <p className="text-xs text-slate-400">共 {currentStock.history.length} 个价格节点</p>
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-slate-500">{currentStock.name}</p>
-                <p className="mt-1 text-4xl font-bold tracking-tight text-slate-900">¥{currentStock.price.toFixed(2)}</p>
+                <h2 className="font-semibold text-slate-900">调整价格</h2>
+                <p className="mt-0.5 text-xs text-slate-500">选择方向和变动幅度</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-400">共 {currentStock.history.length} 个价格节点</p>
-                <p className={cn('mt-1 text-sm font-semibold', meta.color)}>实时走势</p>
-              </div>
+              <span className="hidden rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-400 shadow-sm sm:block">
+                {history.length > 0 ? `可撤回 ${history.length} 次` : '暂无可撤回操作'}
+              </span>
             </div>
 
-            <div className="mt-6 h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke="#E2E8F0" strokeDasharray="4 4" />
-                  <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
-                  <Tooltip
-                    formatter={(value: number) => [`¥${value.toFixed(2)}`, '价格']}
-                    labelFormatter={(label) => `第 ${label} 次变动`}
-                    contentStyle={{ borderRadius: 12, borderColor: '#E2E8F0', boxShadow: '0 8px 24px rgba(15,23,42,0.08)' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="price"
-                    stroke={meta.line}
-                    strokeWidth={3}
-                    dot={{ fill: meta.line, strokeWidth: 3, stroke: '#fff', r: 4 }}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
-            <h2 className="text-lg font-semibold text-slate-900">调整价格</h2>
-            <p className="mt-1 text-sm text-slate-500">选择方向和变动幅度</p>
-
-            <div className="mt-5 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
-              <button
-                type="button"
-                onClick={() => setIsIncrease(true)}
-                className={cn(
-                  'flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold transition-all',
-                  isIncrease ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500',
-                )}
-              >
-                <TrendingUp size={17} />
-                上涨
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsIncrease(false)}
-                className={cn(
-                  'flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold transition-all',
-                  !isIncrease ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500',
-                )}
-              >
-                <TrendingDown size={17} />
-                下跌
-              </button>
-            </div>
-
-            <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wider text-slate-400">快捷幅度</p>
-            <div className="grid grid-cols-3 gap-2">
-              {presetChanges.map((percentage) => (
-                <button
-                  key={percentage}
-                  type="button"
-                  onClick={() => handlePriceChange(percentage)}
-                  className={cn(
-                    'rounded-xl border py-3 text-sm font-bold transition-all',
-                    isIncrease
-                      ? 'border-emerald-100 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                      : 'border-red-100 bg-red-50 text-red-600 hover:bg-red-100',
-                  )}
-                >
-                  {isIncrease ? '+' : '-'}{percentage}%
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-5 border-t border-slate-100 pt-5">
-              <label htmlFor="custom-change" className="text-sm font-semibold text-slate-700">自定义幅度</label>
-              <div className="mt-2 flex gap-2">
-                <div className="relative min-w-0 flex-1">
-                  <input
-                    id="custom-change"
-                    type="number"
-                    value={customAmount[selectedStock] || ''}
-                    onChange={(event) => setCustomAmount((current) => ({ ...current, [selectedStock]: event.target.value }))}
-                    onKeyDown={(event) => event.key === 'Enter' && handleCustomChange()}
-                    min="0.1"
-                    step="0.1"
-                    placeholder="例如 2.5"
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 pr-8 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">%</span>
+            <div className="mt-4 grid gap-4 lg:grid-cols-[0.8fr_1fr_1.15fr] lg:items-end">
+              <div>
+                <p className="mb-2 text-xs font-semibold tracking-wide text-slate-400">变动方向</p>
+                <div className="grid grid-cols-2 rounded-xl bg-slate-200/60 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsIncrease(true)}
+                    className={cn(
+                      'flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold transition-all',
+                      isIncrease ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500',
+                    )}
+                  >
+                    <TrendingUp size={17} />上涨
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsIncrease(false)}
+                    className={cn(
+                      'flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-semibold transition-all',
+                      !isIncrease ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500',
+                    )}
+                  >
+                    <TrendingDown size={17} />下跌
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCustomChange}
-                  className="h-11 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition-colors hover:bg-blue-700"
-                >
-                  应用
-                </button>
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold tracking-wide text-slate-400">快捷幅度</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {presetChanges.map((percentage) => (
+                    <button
+                      key={percentage}
+                      type="button"
+                      onClick={() => handlePriceChange(percentage)}
+                      className={cn(
+                        'h-11 rounded-xl border bg-white text-sm font-bold transition-all',
+                        isIncrease
+                          ? 'border-emerald-100 text-emerald-600 hover:bg-emerald-50'
+                          : 'border-red-100 text-red-600 hover:bg-red-50',
+                      )}
+                    >
+                      {isIncrease ? '+' : '-'}{percentage}%
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="custom-change" className="mb-2 block text-xs font-semibold tracking-wide text-slate-400">自定义幅度</label>
+                <div className="flex gap-2">
+                  <div className="relative min-w-0 flex-1">
+                    <input
+                      id="custom-change"
+                      type="number"
+                      value={customAmount[selectedStock] || ''}
+                      onChange={(event) => setCustomAmount((current) => ({ ...current, [selectedStock]: event.target.value }))}
+                      onKeyDown={(event) => event.key === 'Enter' && handleCustomChange()}
+                      min="0.1"
+                      step="0.1"
+                      placeholder="例如 2.5"
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 pr-8 text-sm outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-100"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">%</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCustomChange}
+                    className="h-11 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white shadow-md shadow-blue-500/20 transition-colors hover:bg-blue-700"
+                  >
+                    应用
+                  </button>
+                </div>
               </div>
             </div>
+          </div>
 
-            <div className="mt-5 rounded-xl bg-slate-50 p-3 text-center text-xs text-slate-500">
-              {history.length > 0 ? `当前可撤回 ${history.length} 次操作` : '暂无可撤回操作'}
+          <div className="mt-7 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-semibold text-slate-900">实时走势</h2>
+              <p className="mt-0.5 text-xs text-slate-500">每次调价后自动记录价格节点</p>
             </div>
-          </section>
-        </div>
+            <span className={cn('rounded-full px-3 py-1 text-xs font-semibold', meta.surface, meta.color)}>实时更新</span>
+          </div>
+
+          <div className="mt-4 h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="#E2E8F0" strokeDasharray="4 4" />
+                <XAxis dataKey="time" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} domain={['dataMin - 5', 'dataMax + 5']} />
+                <Tooltip
+                  formatter={(value: number) => [`¥${value.toFixed(2)}`, '价格']}
+                  labelFormatter={(label) => `第 ${label} 次变动`}
+                  contentStyle={{ borderRadius: 12, borderColor: '#E2E8F0', boxShadow: '0 8px 24px rgba(15,23,42,0.08)' }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="price"
+                  stroke={meta.line}
+                  strokeWidth={3}
+                  dot={{ fill: meta.line, strokeWidth: 3, stroke: '#fff', r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
 
         <section className="mt-5 rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
           <div className="flex items-center gap-2">
