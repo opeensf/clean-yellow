@@ -129,12 +129,9 @@ export default function StockMarket() {
         </div>
 
         <section className="mt-5 rounded-3xl border border-white bg-white/85 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-6">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-slate-500">{currentStock.name}</p>
-              <p className="mt-1 text-4xl font-bold tracking-tight text-slate-900">¥{currentStock.price.toFixed(2)}</p>
-            </div>
-            <p className="text-xs text-slate-400">共 {currentStock.history.length} 个价格节点</p>
+          <div>
+            <p className="text-sm font-medium text-slate-500">{currentStock.name}</p>
+            <p className="mt-2 text-5xl font-black tracking-[-0.045em] text-slate-900 sm:text-6xl">¥{currentStock.price.toFixed(2)}</p>
           </div>
 
           <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 sm:p-5">
