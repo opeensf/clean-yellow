@@ -1,7 +1,17 @@
 import { useState } from 'react';
-import { ArrowLeft, Dice6, Sparkles, TrendingUp, TrendingDown } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  Dice6,
+  GraduationCap,
+  RotateCcw,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useGameStore } from '../store/gameStore';
+import { useGameStore, type StockType } from '../store/gameStore';
 import { toast } from 'sonner';
 import { cn } from '../lib/utils';
 
@@ -282,210 +292,189 @@ const chanceEvents: ChanceEvent[] = [
   }
 ];
 
+const stockDisplay: Record<StockType, {
+  icon: typeof Building2;
+  color: string;
+  surface: string;
+}> = {
+  property: { icon: Building2, color: 'text-blue-600', surface: 'bg-blue-50' },
+  education: { icon: GraduationCap, color: 'text-emerald-600', surface: 'bg-emerald-50' },
+};
+
+const stockOrder: StockType[] = ['property', 'education'];
+
 export default function ChanceFate() {
   const navigate = useNavigate();
   const { stocks, adjustStockPrice } = useGameStore();
   const [isRolling, setIsRolling] = useState(false);
   const [currentEvent, setCurrentEvent] = useState<ChanceEvent | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [lastPriceChanges, setLastPriceChanges] = useState<{[key: string]: number}>({});
+  const [lastPriceChanges, setLastPriceChanges] = useState<Partial<Record<StockType, number>>>({});
+  const [previousPrices, setPreviousPrices] = useState<Partial<Record<StockType, number>>>({});
 
-  // 生成随机事件
-  const generateRandomEvent = (): ChanceEvent => {
-    // 随机选择一个预定义事件，直接使用其配置的价格变化
-    const selectedEvent = chanceEvents[Math.floor(Math.random() * chanceEvents.length)];
-    
-    // 直接返回选中的事件，不再重新生成随机变化
-    return selectedEvent;
-  };
-
-  // 执行机会命运
   const handleChanceFate = async () => {
     if (isRolling) return;
-    
+
     setIsRolling(true);
     setShowResult(false);
     setCurrentEvent(null);
-
-    // 模拟转盘动画延迟
-    await new Promise(resolve => setTimeout(resolve, 2000));
-
-    // 生成随机事件
-    const event = generateRandomEvent();
-    setCurrentEvent(event);
-
-    // 记录价格变化
-    const changes: {[key: string]: number} = {};
-    event.effects.forEach(effect => {
-      changes[effect.stockType] = effect.change;
+    setPreviousPrices({
+      property: stocks.property.price,
+      education: stocks.education.price,
     });
-    setLastPriceChanges(changes);
 
-    // 应用股票价格变化
-    event.effects.forEach(effect => {
+    await new Promise((resolve) => setTimeout(resolve, 1600));
+
+    const event = chanceEvents[Math.floor(Math.random() * chanceEvents.length)];
+    const changes: Partial<Record<StockType, number>> = {};
+    event.effects.forEach((effect) => {
+      changes[effect.stockType] = effect.change;
       adjustStockPrice(effect.stockType, effect.change);
     });
 
+    setCurrentEvent(event);
+    setLastPriceChanges(changes);
     setShowResult(true);
     setIsRolling(false);
-
-    // 显示成功提示
-    toast.success('机会命运已触发！', {
-      description: '股票价格已更新'
-    });
+    toast.success('本轮市场变化已生效');
   };
 
-  // 重置状态
   const resetState = () => {
     setCurrentEvent(null);
     setShowResult(false);
     setLastPriceChanges({});
+    setPreviousPrices({});
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-4">
-      <div className="max-w-4xl mx-auto">
-        {/* 头部 */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 px-4 py-2 bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            返回首页
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/35 to-rose-50/50">
+      <header className="sticky top-0 z-10 border-b border-white/80 bg-white/80 px-4 py-3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center gap-3">
+          <button type="button" onClick={() => navigate('/')} aria-label="返回首页" className="rounded-xl p-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900">
+            <ArrowLeft size={20} />
           </button>
-          <h1 className="text-2xl font-bold text-gray-800">机会命运</h1>
-          <div className="w-20" /> {/* 占位符保持居中 */}
-        </div>
-
-        {/* 当前股票价格显示 */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">{stocks.property.name}</h3>
-                <div className="relative inline-block">
-                  <p className="text-2xl font-bold text-blue-600">¥{stocks.property.price.toFixed(2)}</p>
-                  {/* 股价变化显示在数字右上角 */}
-                  {lastPriceChanges.property && (
-                    <div className={cn(
-                      "absolute -top-1 -right-1 translate-x-full px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1",
-                      lastPriceChanges.property > 0 
-                        ? "bg-green-100 text-green-700" 
-                        : "bg-red-100 text-red-700"
-                    )}>
-                      {lastPriceChanges.property > 0 ? (
-                        <TrendingUp className="w-3 h-3" />
-                      ) : (
-                        <TrendingDown className="w-3 h-3" />
-                      )}
-                      {lastPriceChanges.property > 0 ? '+' : ''}{lastPriceChanges.property}%
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">{stocks.education.name}</h3>
-                <div className="relative inline-block">
-                  <p className="text-2xl font-bold text-green-600">¥{stocks.education.price.toFixed(2)}</p>
-                  {/* 股价变化显示在数字右上角 */}
-                  {lastPriceChanges.education && (
-                    <div className={cn(
-                      "absolute -top-1 -right-1 translate-x-full px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1",
-                      lastPriceChanges.education > 0 
-                        ? "bg-green-100 text-green-700" 
-                        : "bg-red-100 text-red-700"
-                    )}>
-                      {lastPriceChanges.education > 0 ? (
-                        <TrendingUp className="w-3 h-3" />
-                      ) : (
-                        <TrendingDown className="w-3 h-3" />
-                      )}
-                      {lastPriceChanges.education > 0 ? '+' : ''}{lastPriceChanges.education}%
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
+          <span className="rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-600 p-2.5 text-white shadow-lg shadow-violet-500/20">
+            <Sparkles size={21} />
+          </span>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">机会命运</h1>
+            <p className="text-xs text-slate-500">随机事件与市场变化</p>
           </div>
         </div>
+      </header>
 
-        {/* 机会命运转盘区域 */}
-        <div className="bg-white rounded-xl p-8 shadow-sm mb-6">
-          <div className="text-center">
-            <div className="mb-6">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
+        <section className="grid gap-3 sm:grid-cols-2">
+          {stockOrder.map((stockType) => {
+            const stock = stocks[stockType];
+            const display = stockDisplay[stockType];
+            const Icon = display.icon;
+            return (
+              <div key={stockType} className="flex items-center gap-3 rounded-2xl border border-white bg-white/85 p-4 shadow-sm backdrop-blur">
+                <span className={cn('rounded-xl p-2.5', display.surface, display.color)}><Icon size={20} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-slate-500">{stock.name}</p>
+                  <p className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">¥{stock.price.toFixed(2)}</p>
+                </div>
+                {showResult && lastPriceChanges[stockType] !== undefined && (
+                  <span className={cn(
+                    'flex items-center gap-1 rounded-full px-2.5 py-1 text-sm font-bold',
+                    lastPriceChanges[stockType]! > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600',
+                  )}>
+                    {lastPriceChanges[stockType]! > 0 ? <TrendingUp size={15} /> : <TrendingDown size={15} />}
+                    {lastPriceChanges[stockType]! > 0 ? '+' : ''}{lastPriceChanges[stockType]}%
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </section>
+
+        <section className="relative mt-5 overflow-hidden rounded-3xl border border-white bg-white/90 p-5 shadow-sm shadow-slate-200/70 backdrop-blur sm:p-8">
+          <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-violet-100/70 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-rose-100/60 blur-3xl" />
+
+          {!showResult || !currentEvent ? (
+            <div className="relative flex min-h-[430px] flex-col items-center justify-center text-center">
               <div className={cn(
-                "w-32 h-32 mx-auto rounded-full border-8 border-purple-200 flex items-center justify-center transition-transform duration-2000",
-                isRolling && "animate-spin"
+                'relative flex h-28 w-28 items-center justify-center rounded-[2rem] bg-gradient-to-br from-violet-500 to-fuchsia-600 text-white shadow-2xl shadow-violet-500/25 transition-transform',
+                isRolling && 'animate-spin',
               )}>
-                <Sparkles className={cn(
-                  "w-16 h-16 transition-colors duration-500",
-                  isRolling ? "text-purple-600" : "text-purple-400"
-                )} />
+                <Dice6 size={48} />
+                <span className="absolute -right-2 -top-2 flex h-9 w-9 items-center justify-center rounded-full border-4 border-white bg-amber-400 text-white shadow-sm">
+                  <Sparkles size={16} />
+                </span>
               </div>
-            </div>
-            
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">命运转盘</h2>
-            <p className="text-gray-600 mb-6">
-              点击下方按钮触发机会命运，随机选择事件影响两个股票的价格
-            </p>
-            
-            <button
-              onClick={handleChanceFate}
-              disabled={isRolling}
-              className={cn(
-                "px-8 py-3 rounded-lg font-semibold transition-all duration-200",
-                isRolling
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 hover:shadow-lg transform hover:scale-105"
-              )}
-            >
-              <div className="flex items-center gap-2">
-                <Dice6 className="w-5 h-5" />
-                {isRolling ? '命运降临中...' : '触发机会命运'}
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* 事件结果显示 */}
-        {showResult && currentEvent && (
-          <div className="bg-white rounded-xl p-6 shadow-sm animate-fade-in">
-            <div className="text-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">命运事件</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                {currentEvent.description}
-              </p>
-            </div>
-            
-            <div className="mt-6 text-center">
+              <span className="mt-8 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-600">32 个随机事件 · 同时影响两类股票</span>
+              <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">让市场迎来一次转折</h2>
+              <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">触发一项随机事件，并立即结算房产股与教育股的价格变化。</p>
               <button
-                onClick={resetState}
-                className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                type="button"
+                onClick={handleChanceFate}
+                disabled={isRolling}
+                className="mt-7 flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-900 px-7 font-semibold text-white shadow-lg shadow-slate-900/15 transition-all hover:-translate-y-0.5 hover:bg-violet-600 disabled:cursor-wait disabled:translate-y-0 disabled:bg-slate-300"
               >
-                继续游戏
+                <Dice6 size={18} />{isRolling ? '正在揭晓...' : '触发机会命运'}
               </button>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="relative animate-fade-in">
+              <div className="mx-auto max-w-2xl text-center">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-600"><Sparkles size={13} />本轮命运事件</span>
+                <h2 className="mt-4 text-xl font-bold leading-8 tracking-tight text-slate-900 sm:text-2xl">{currentEvent.description}</h2>
+                <p className="mt-2 text-sm text-slate-500">市场价格已完成结算</p>
+              </div>
 
-        {/* 说明文字 */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>每次触发机会命运都会随机影响两个股票的价格</p>
-          <p>价格变化范围：±1%、±2%、±3%（数学期望约1%）</p>
-        </div>
-      </div>
+              <div className="mt-7 grid gap-4 sm:grid-cols-2">
+                {stockOrder.map((stockType) => {
+                  const stock = stocks[stockType];
+                  const display = stockDisplay[stockType];
+                  const Icon = display.icon;
+                  const change = lastPriceChanges[stockType] ?? 0;
+                  const isPositive = change > 0;
+                  const DirectionIcon = isPositive ? TrendingUp : TrendingDown;
+                  return (
+                    <article key={stockType} className={cn(
+                      'overflow-hidden rounded-2xl border p-5',
+                      isPositive ? 'border-emerald-100 bg-gradient-to-br from-emerald-50 to-white' : 'border-rose-100 bg-gradient-to-br from-rose-50 to-white',
+                    )}>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className={cn('rounded-xl bg-white p-2.5 shadow-sm', display.color)}><Icon size={20} /></span>
+                          <p className="font-semibold text-slate-800">{stock.name}</p>
+                        </div>
+                        <span className={cn(
+                          'flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold',
+                          isPositive ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700',
+                        )}>
+                          <DirectionIcon size={14} />{isPositive ? '上涨' : '下跌'}
+                        </span>
+                      </div>
+                      <div className="mt-6 flex items-end justify-between gap-4">
+                        <p className={cn('text-5xl font-black tracking-tighter', isPositive ? 'text-emerald-600' : 'text-rose-600')}>
+                          {isPositive ? '+' : ''}{change}%
+                        </p>
+                        <div className="flex items-center gap-2 pb-1 text-sm font-semibold">
+                          <span className="text-slate-400">¥{(previousPrices[stockType] ?? stock.price).toFixed(2)}</span>
+                          <ArrowRight size={15} className="text-slate-300" />
+                          <span className="text-slate-800">¥{stock.price.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className="mt-7 flex flex-col justify-center gap-2 sm:flex-row">
+                <button type="button" onClick={handleChanceFate} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-violet-600">
+                  <RotateCcw size={16} />再触发一次
+                </button>
+                <button type="button" onClick={resetState} className="h-11 rounded-xl px-5 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800">收起结果</button>
+              </div>
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }
