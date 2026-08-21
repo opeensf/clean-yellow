@@ -76,7 +76,7 @@ npm run deploy
 仓库同时包含 GitHub Actions 工作流。推送到发布分支后会自动构建；在仓库设置中配置下列值即可在 Pages 上启用云端存档：
 
 - Repository variable：`VITE_SUPABASE_URL`
-- Repository secret：`VITE_SUPABASE_PUBLISHABLE_KEY`
+- Repository variable：`VITE_SUPABASE_PUBLISHABLE_KEY`
 
 没有配置这两个值时，网站仍可正常使用本地存档，云端存档面板会显示“等待配置”。
 
