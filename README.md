@@ -1,161 +1,87 @@
-# Clean Yellow - 大富翁风格游戏管理系统 (1.1版本)
+# 扫黄之旅辅助工具
 
-一个基于 React + TypeScript + Vite 构建的现代化游戏管理系统，模拟大富翁游戏的各种功能模块。
+为线下桌游流程制作的响应式管理工具，基于 React、TypeScript、Vite 和 Zustand 构建。项目聚合股票调价、玩家资产、债务关系、官方保险、七星彩与机会命运等功能，数据默认保存在浏览器本地。
 
-## 🎮 项目特色
+## 在线使用
 
-- **股票市场模拟** - 完整的股票交易系统
-- **玩家管理** - 多玩家游戏状态管理
-- **欠债管理** - 债务追踪和管理
-- **七星彩游戏** - 彩票抽奖系统
-- **机会命运** - 随机事件卡片系统
-- **保险系统** - 风险管理功能
-- **数据分析** - 股票收益分析图表
+[打开 GitHub Pages](https://opeensf.github.io/clean-yellow/)
 
-## 🚀 在线演示
+## 当前功能
 
-访问 [GitHub Pages 部署版本](https://opeensf.github.io/clean-yellow/)
+- **首页概览**：查看股票行情、玩家股票资产和常用操作；点击股票可直接进入对应市场。
+- **股票市场**：切换房产股与教育股，按百分比调整价格，查看实时走势与最近价格记录，支持撤回调价。
+- **玩家管理**：新增、编辑或删除玩家；按金额买卖股票、按股数调整持仓，并查看玩家股值。
+- **债务管理**：在关系图中选择债务人与债权人并创建欠款；点击债务连线可跳转到对应记录；支持部分还款、还清和删除。
+- **债务自动合并**：相同债务人和债权人的新增欠款会自动合并，原始金额与剩余金额分别累加。
+- **官方保险**：调整每位玩家的保费和启用状态；增加保费后，已启用的保险会自动变为未启用。
+- **七星彩**：生成并管理游戏所需的彩票结果。
+- **机会命运**：随机抽取事件，同时结算房产股与教育股的涨跌，并清晰展示调价前后价格。
+- **收益分析**：查看玩家股票交易与收益情况。
 
-## 🛠️ 技术栈
+## 界面特性
 
-- **前端框架**: React 18 + TypeScript
-- **构建工具**: Vite 6
-- **路由管理**: React Router DOM 7
-- **状态管理**: Zustand
-- **UI 组件**: 自定义组件 + Lucide React 图标
-- **样式方案**: Tailwind CSS
-- **图表库**: Recharts
-- **通知系统**: Sonner
-- **代码规范**: ESLint + TypeScript ESLint
+- 桌面端与移动端响应式布局
+- 玩家姓名首字与专属颜色识别
+- 直观的债务连线、金额标签和还款进度
+- 简约卡片式界面与统一状态配色
+- 浏览器本地持久化，无需后端服务
 
-## 📦 安装和运行
+## 技术栈
 
-### 环境要求
+- React 18
+- TypeScript 5
+- Vite 6
+- React Router 7
+- Zustand
+- Tailwind CSS
+- Recharts
+- Lucide React
+- Sonner
 
-- Node.js >= 16
-- npm 或 yarn
+## 本地运行
 
-### 本地开发
+环境要求：Node.js 18 或更高版本，推荐使用当前 LTS 版本。
 
 ```bash
-# 克隆项目
 git clone https://github.com/opeensf/clean-yellow.git
 cd clean-yellow
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
 npm run dev
 ```
 
-访问 `http://localhost:5173` 查看项目
+开发服务器启动后访问：
 
-### 构建部署
+```text
+http://localhost:5173/clean-yellow/
+```
+
+## 检查与构建
 
 ```bash
-# 构建生产版本
-npm run build
+npm run check   # TypeScript 类型检查
+npm run build   # 生产构建
+npm run preview # 本地预览生产版本
+```
 
-# 预览构建结果
-npm run preview
+## GitHub Pages 部署
 
-# 部署到 GitHub Pages
+```bash
 npm run deploy
 ```
 
-## 📱 功能模块
+部署脚本会先生成生产版本，再将 `dist` 内容发布到 `gh-pages` 分支。
 
-### 🏠 首页
-- 游戏概览和快速导航
-- 系统状态展示
+## 项目结构
 
-### 📈 股票市场
-- 实时股票价格模拟
-- 买入/卖出交易功能
-- 投资组合管理
-
-### 👥 玩家管理
-- 多玩家信息管理
-- 资产状态追踪
-- 游戏进度记录
-
-### 💳 欠债管理
-- 债务记录和追踪
-- 还款计划管理
-- 利息计算
-
-### 🎲 七星彩
-- 彩票号码生成
-- 中奖概率计算
-- 奖金分配系统
-
-### ✨ 机会命运
-- 随机事件卡片
-- 游戏规则执行
-- 奖惩机制
-
-### 🛡️ 保险系统
-- 风险评估
-- 保险购买和理赔
-- 保费计算
-
-### 📊 数据分析
-- 股票收益图表
-- 投资回报分析
-- 历史数据展示
-
-## 🎨 设计特点
-
-- **响应式设计** - 适配移动端和桌面端
-- **现代化 UI** - 简洁美观的用户界面
-- **流畅交互** - 优化的用户体验
-- **模块化架构** - 清晰的代码组织结构
-
-## 📁 项目结构
-
-```
+```text
 src/
-├── components/     # 可复用组件
-├── pages/         # 页面组件
-├── hooks/         # 自定义 Hooks
-├── store/         # 状态管理
-├── lib/           # 工具函数
-├── router/        # 路由配置
-└── assets/        # 静态资源
+├── components/  # 通用组件
+├── lib/         # 工具函数
+├── pages/       # 功能页面
+├── router/      # 路由配置
+└── store/       # 游戏状态与业务规则
 ```
 
-## 🔧 开发脚本
+## 数据说明
 
-```bash
-npm run dev        # 启动开发服务器
-npm run build      # 构建生产版本
-npm run preview    # 预览构建结果
-npm run lint       # 代码检查
-npm run check      # TypeScript 类型检查
-npm run deploy     # 部署到 GitHub Pages
-```
-
-## 🤝 贡献指南
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 打开 Pull Request
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
-
-## 🙏 致谢
-
-- [React](https://reactjs.org/) - 用户界面库
-- [Vite](https://vitejs.dev/) - 快速构建工具
-- [Tailwind CSS](https://tailwindcss.com/) - CSS 框架
-- [Lucide React](https://lucide.dev/) - 图标库
-- [Recharts](https://recharts.org/) - 图表库
-
----
-
-**注意**: 这是一个模拟游戏项目，仅用于学习和娱乐目的。
+游戏状态保存在当前浏览器的本地存储中。更换浏览器、清理网站数据或开始新一局游戏，可能会重置已有记录。项目用于线下游戏辅助与娱乐，不涉及真实股票、债务或保险业务。
