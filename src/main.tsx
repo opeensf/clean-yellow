@@ -4,10 +4,13 @@ import { RouterProvider } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import './index.css';
 import { router } from './router';
+import { CloudRoomProvider } from './cloud/CloudRoomProvider';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <CloudRoomProvider>
+      <RouterProvider router={router} />
+    </CloudRoomProvider>
     <Toaster position="top-center" richColors />
   </StrictMode>,
 );

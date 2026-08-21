@@ -49,7 +49,7 @@ export interface TradeRecord {
 }
 
 // 历史操作记录
-interface HistoryRecord {
+export interface HistoryRecord {
   timestamp: number;
   type: 'stock_price';
   data: {
@@ -60,7 +60,7 @@ interface HistoryRecord {
 }
 
 // 游戏状态
-interface GameState {
+export interface GameState {
   // 股票相关
   stocks: Record<StockType, Stock>;
   updateStockPrice: (stockType: StockType, newPrice: number) => void;
